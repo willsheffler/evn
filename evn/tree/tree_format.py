@@ -23,6 +23,9 @@ class Format(str, enum.Enum):
 @evn.dispatch(dict)
 def show_impl(dict_, format='forest', **kw):
     dict_ = evn.tree.sanitize(dict_)
+    if not any(isinstance(d, (dict,list)) for d in dict_):
+        pprint.pprint(dict_)
+        return
     try:
         fmt = Format(format)
     except ValueError as e:

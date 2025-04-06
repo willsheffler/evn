@@ -10,6 +10,7 @@ projconf = projroot / 'pyproject.toml'
 if not (projroot / 'pyproject.toml').exists:
     projroot = None
     evn_installed = True
+show_trace = False
 
 def evn_init_checkpoint(name):
     global _start, _timings
@@ -99,7 +100,8 @@ from evn._prelude.typehints import (
     EnumerListIter as EnumerListIter,
     basic_typevars as basic_typevars,
 )
-# from evn._prelude.chrono import Chrono as Chrono, chrono as chrono, checkpoint as checkpoint
+from evn._prelude.chrono import (Chrono as Chrono, chrono as chrono, chrono_enter_context as
+                                 chrono_enter_context, chrono_exit_context, chrono_exit_context)
 from evn.decofunc import (
     iterize_on_first_param as iterize_on_first_param,
     iterize_on_first_param_path as iterize_on_first_param_path,

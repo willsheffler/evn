@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    'hypothesis',
     'pytest',
     'pytest-xdist',
     'pytest-benchmark',

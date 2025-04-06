@@ -56,13 +56,13 @@ def maintest(namespace, config=evn.Bunch(), **kw):
     config.detect_fixtures(namespace)
     evn.kwcall(config, evn.meta.filter_namespace_funcs, namespace)
     # timed = evn.chrono if config.timed else lambda f: f
-    timed = lambda f: f
+    # timed = lambda f:
     test_suites, test_funcs = [], []
     for name, obj in namespace.items():
         if _test_class_ok(name, obj) and config.use_test_classes:
-            test_suites.append((name, timed(obj)))
+            test_suites.append((name, obj))
         elif _test_func_ok(name, obj):
-            test_funcs.append((name, timed(obj)))
+            test_funcs.append((name, obj))
     # evn.global_timer.checkpoint('maintest')
     result = TestResult()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -70,9 +70,6 @@ def maintest(namespace, config=evn.Bunch(), **kw):
         evn.kwcall(config.fixtures, config.setup)
         config.fixtures['tmpdir'] = str(tmpdir)
         config.fixtures['tmp_path'] = tmpdir
-
-        for name, func in test_funcs:
-            _maintest_run_maybe_parametrized_func(name, func, result, config, kw)
 
         for clsname, Suite in test_suites:
             suite = Suite()
@@ -84,6 +81,9 @@ def maintest(namespace, config=evn.Bunch(), **kw):
                 _maintest_run_maybe_parametrized_func(f'{clsname}.{name}', getattr(suite, name), result,
                                                       config, kw)
             getattr(suite, 'tearDown', lambda: None)
+
+        for name, func in test_funcs:
+            _maintest_run_maybe_parametrized_func(name, func, result, config, kw)
 
     if result.passed: print('PASSED   ', len(result.passed), 'tests')
     for label, tests in result.items():

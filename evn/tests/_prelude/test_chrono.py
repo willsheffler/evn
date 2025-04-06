@@ -1,12 +1,14 @@
-import unittest
 import statistics
 import pytest
 import time
 import random
-from evn._prelude.chrono import Chrono, chrono
+from evn._prelude.chrono import Chrono, chrono, TimerContext
 # from evn.dynamic_float_array import DynamicFloatArray
 
 import evn
+
+orig_name = __name__
+__name__ = 'test_chrono'
 
 config_test = evn.Bunch(
     re_only=[
@@ -18,7 +20,7 @@ config_test = evn.Bunch(
 )
 
 def main():
-    evn.tests.maintest(
+    evn.testing.maintest(
         namespace=globals(),
         config=config_test,
         verbose=1,
@@ -26,73 +28,76 @@ def main():
         chrono=False,
     )
 
-class TestClass(unittest.TestCase):
 
-    def setUp(self):
-        self.runtime = {"method1": 0, "method2": 0, "recursive": 0, "generator": 0}
+class ChronoTest:
+
+    def __init__(self):
+        self.runtime = {"method1": [], "method2": [], "recursive": [], "generator": []}
 
     @chrono
     def method1(self):
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
         print(self)
-        self.runtime["method1"] += time.perf_counter() - start
-        self.method2
+        self.runtime["method1"].append(time.perf_counter() - start)
+        self.method2()
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method1"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["method1"].append(time.perf_counter() - start)
 
     @chrono
     def method2(self):
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method2"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["method2"].append(time.perf_counter() - start)
         self.recursive(random.randint(1, 3))
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method2"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["method2"].append(time.perf_counter() - start)
 
     @chrono
     def recursive(self, depth):
         if not depth: return
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method2"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["recursive"].append(time.perf_counter() - start)
         self.recursive(depth - 1)
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method2"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["recursive"].append(time.perf_counter() - start)
 
     @chrono
     def generator(self):
         start = time.perf_counter()
-        time.sleep(random.uniform(0.01, 0.03))
-        self.runtime["method2"] += time.perf_counter() - start
+        time.sleep(0.01)#random.uniform(0.01, 0.03))
+        self.runtime["generator"].append(time.perf_counter() - start)
         for i in range(3):
             start = time.perf_counter()
-            time.sleep(random.uniform(0.01, 0.03))
-            self.runtime["method2"] += time.perf_counter() - start
+            time.sleep(0.01)#random.uniform(0.01, 0.03))
+            self.runtime["generator"].append(time.perf_counter() - start)
             yield i
             start = time.perf_counter()
-            time.sleep(random.uniform(0.01, 0.03))
-            self.runtime["method2"] += time.perf_counter() - start
+            time.sleep(0.01)#random.uniform(0.01, 0.03))
+            self.runtime["generator"].append(time.perf_counter() - start)
 
-@pytest.mark.xfail
-def test_chrono_class():
-    evn.global_chrono = Chrono()
-    instance = TestClass()
-
+def test_chrono_nesting():
+    instance = ChronoTest()
     instance.method1()
-    instance.method2()
-    list(instance.generator())
-
-    report = evn.global_chrono.report_dict()
-
-    for method in instance.runtime:
+    assert list(instance.generator()) == [0, 1, 2]
+    report = evn.chrono_main.report_dict()
+    print(report.keys())
+    for method in 'method1 method2 recursive generator'.split():
+      try:
         recorded_time = sum(instance.runtime[method])
-        chrono_time = report.get(f"test_chrono_class.<locals>.TestClass.{method}", 0)
-        assert abs(recorded_time -
-                   chrono_time) < 0.01, f"Mismatch in {method}: {recorded_time} vs {chrono_time}"
+        print(report.keys())
+        chrono_time = report[f"test_chrono.ChronoTest.{method}"]
+        err = f"Mismatch in {method}, internal: {recorded_time} vs chrono: {chrono_time}"
+        assert abs(recorded_time - chrono_time) < 0.005, err
+      except KeyError:
+        print(f'missing key {method}')
+        assert 0
+    assert evn.chrono_main.contextstack[-1].name == 'misc'
+
 
 def hypothesis_test_chrono_class():
     from hypothesis import given, strategies as st
@@ -122,17 +127,23 @@ def hypothesis_test_chrono_class():
     run_test()
 
 def test_chrono_func():
+    timer = Chrono()
 
-    @chrono
+    @chrono(chrono=timer)
     def foo():
         time.sleep(0.001)
 
     foo()
-    print(evn.global_chrono.profile)
-    assert 'test_chrono_func.<locals>.foo' in evn.global_chrono.profile
+    assert 'test_chrono.test_chrono_func.foo' in timer.profile
+    assert len(timer.profile['test_chrono.test_chrono_func.foo']) == 1
+    print(timer.profile['test_chrono.test_chrono_func.foo'])
+    assert sum(timer.profile['test_chrono.test_chrono_func.foo']) >= 0.001
 
 def test_context():
     with Chrono() as t:
+        t.enter_context('baz')
+        t.enter_context('bar')
+        t.enter_context('foo')
         t.exit_context('foo')
         t.exit_context('bar')
         t.exit_context('baz')
@@ -172,37 +183,15 @@ def test_chrono():
     with pytest.raises(ValueError):
         chrono.report_dict(order="oarenstoiaen")
 
-def aaaa(chrono=None):
-    exit_context(chrono=chrono, funcbegin=True)
-    time.sleep(0.2)
-    exit_context(chrono=chrono)
-
-##@chrono
-def bbbb(**kw):
-    time.sleep(0.2)
-
-    t = Chrono()
-    aaaa(t)
-    areport = t.report(printme=False)
-
-    t = Chrono()
-    kw = evn.Bunch(chrono=t)
-    exit_context('label', chrono=t)
-    bbbb(**kw)
-    breport = t.report(printme=False)
-
-    print(areport)
-    print(breport.replace("bbbb", "aaaa"))
-    # print(breport.replace('bbbb', 'aaaa'))
-    # assert areport.strip() == breport.replace('bbbb', 'aaaa').strip()
-
-@pytest.mark.skip
 def test_summary():
     with Chrono() as chrono:
+        chrono.enter_context("foo")
         time.sleep(0.01)
         chrono.exit_context("foo")
+        chrono.enter_context("foo")
         time.sleep(0.03)
         chrono.exit_context("foo")
+        chrono.enter_context("foo")
         time.sleep(0.02)
         chrono.exit_context("foo")
     times = chrono.report_dict(summary=sum)
@@ -211,42 +200,84 @@ def test_summary():
     times = chrono.report_dict(summary=statistics.mean)
     assert allclose(times["foo"], 0.02, atol=0.01)
 
-    times = chrono.report_dict(summary="mean")
-    assert allclose(times["foo"], 0.02, atol=0.01)
-
-    times = chrono.report_dict(summary="min")
+    times = chrono.report_dict(summary=min)
     assert allclose(times["foo"], 0.01, atol=0.01)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         chrono.report(summary="foo")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         chrono.report(summary=1)
 
-def test_chrono_interjection():
+def test_chrono_stop_behavior():
+    chrono = Chrono()
+    chrono.enter_context("foo")
+    chrono.exit_context("foo")
+    chrono.stop()
+    assert chrono.stopped
+    with pytest.raises(AssertionError):
+        chrono.enter_context("bar")
+    with pytest.raises(AssertionError):
+        chrono.store_checkpoint(TimerContext("baz"))
+
+def test_context_mismatch():
+    chrono = Chrono()
+    chrono.enter_context("foo")
+    with pytest.raises(AssertionError, match="stored context: foo does not match exit context: bar"):
+        chrono.exit_context("bar")
+
+def test_context_name_from_object():
+    chrono = Chrono()
+    class Dummy:
+        pass
+    name = chrono.context_name(Dummy)
+    assert isinstance(name, str)
+    assert "Dummy" in name
+
+def test_get_checkpoint_data_missing():
+    chrono = Chrono()
+    assert chrono.get_checkpoint_data("not_there") == []
+
+def test_report_string_return():
     with Chrono() as chrono:
-        chrono.exit_context("bar")
-        chrono.exit_context()
-        chrono.exit_context("baz")
-        chrono.exit_context("bar")
+        chrono.enter_context("foo")
+        time.sleep(0.01)
         chrono.exit_context("foo")
-    assert set(chrono.profile) == {'foo', 'bar', 'baz'}
-    assert len(chrono.profile['foo']) == 1
-    assert len(chrono.profile['bar']) == 3
-    assert len(chrono.profile['baz']) == 1
+    report = chrono.report(printme=False)
+    assert isinstance(report, str)
+    assert "foo" in report
 
-def test_chrono_interjection_keyword():
-    with Chrono() as chrono:
-        chrono.exit_context("foo")
-        chrono.exit_context(interject=True)
-        chrono.exit_context("baz")
-        chrono.exit_context("bar")
-        chrono.exit_context("foo")
+def test_generator_with_exception():
+    calls = []
 
-    assert set(chrono.profile) == {'foo', 'bar', 'baz'}
-    assert len(chrono.profile['foo']) == 2
-    assert len(chrono.profile['bar']) == 2
-    assert len(chrono.profile['baz']) == 1
+    @chrono
+    def gen():
+        yield 1
+        yield 2
+        raise ValueError("boom")
 
-if __name__ == '__main__':
+    with pytest.raises(ValueError):
+        for x in gen():
+            calls.append(x)
+
+    assert calls == [1, 2]
+    assert 'test_chrono.test_generator_with_exception.gen' in evn.chrono_main.profile
+
+def test_nested_chrono_contexts():
+    with Chrono() as outer:
+        outer.enter_context("outer")
+        time.sleep(0.005)
+        with Chrono() as inner:
+            inner.enter_context("inner")
+            time.sleep(0.005)
+            inner.exit_context("inner")
+        outer.exit_context("outer")
+    assert 'outer' in outer.profile
+    assert 'inner' in inner.profile
+
+def test_report_dict_bad_order():
+    chrono = Chrono()
+    with pytest.raises(ValueError):
+        chrono.report_dict(order="invalid")
+if orig_name == '__main__':
     main()

@@ -29,6 +29,12 @@
     "build_systems":
     [
         {
+            "name": "run_tests_on_file",
+            "working_dir": "$folder",
+            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_on_file.py --quiet evn evn/_prelude/chrono.py 2>&1 | tee $folder/ide/sublime_build.log",
+            "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
+        },
+        {
             "name": "pytest all",
             "working_dir": "$folder",
             "shell_cmd": "uv run pytest --doctest-modules -k 'not Chrono' evn -xs 2>&1 | tee $folder/ide/sublime_build.log",

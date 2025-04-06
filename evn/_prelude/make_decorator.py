@@ -153,6 +153,7 @@ def make_decorator(userwrap=None, strict=True, **decokw):
         # Otherwise, this is a normal function or method
         @wrapt.decorator()
         def wrapper(wrapped, instance, args, kwargs):
+            kwargs = {k: v for k, v in kwargs.items() if k not in all_kwargs}
             return userwrap(wrapped, args, kwargs, **all_kwargs)
 
         return wrapper(userwrapped)
