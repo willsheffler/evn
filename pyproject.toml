@@ -17,7 +17,7 @@ dependencies = [
     'rich',
     'ruff',
     'typing_extensions; python_version < "3.10"',
-    # 'wrapt',
+    'wrapt',
 ]
 
 [project.optional-dependencies]

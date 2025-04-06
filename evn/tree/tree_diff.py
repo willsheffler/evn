@@ -4,7 +4,7 @@ from collections.abc import Mapping
 import evn
 
 @evn.dispatch(dict, dict)
-def diff_impl(tree1, tree2, show=True, **kw):
+def diff_impl(tree1, tree2, out=print, **kw):
     differ = evn.kwcall(kw, TreeDiffer)
     diff = evn.kwcall(kw, differ.diff, tree1, tree2)
     return diff

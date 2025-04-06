@@ -1,8 +1,9 @@
+import unittest
 import statistics
 import pytest
 import time
 import random
-from evn._prelude.chrono import Chrono, chrono, chrono_class, checkpoint
+from evn._prelude.chrono import Chrono, chrono
 # from evn.dynamic_float_array import DynamicFloatArray
 
 import evn
@@ -25,49 +26,56 @@ def main():
         chrono=False,
     )
 
-def measure_runtime(func):
-    """Wrapper to track independent runtimes using time.perf_counter."""
-
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        end = time.perf_counter()
-        args[0].runtime[func.__name__].append(end - start)
-        return result
-
-    return wrapper
-
-@chrono_class
-class TestClass:
+class TestClass(unittest.TestCase):
 
     def setUp(self):
-        self.runtime = {"method1": [], "method2": [], "recursive": [], "generator": []}
+        self.runtime = {"method1": 0, "method2": 0, "recursive": 0, "generator": 0}
 
-    @measure_runtime
     @chrono
     def method1(self):
+        start = time.perf_counter()
         time.sleep(random.uniform(0.01, 0.03))
-        self.method2()
+        print(self)
+        self.runtime["method1"] += time.perf_counter() - start
+        self.method2
+        start = time.perf_counter()
+        time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method1"] += time.perf_counter() - start
 
-    @measure_runtime
     @chrono
     def method2(self):
+        start = time.perf_counter()
         time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method2"] += time.perf_counter() - start
         self.recursive(random.randint(1, 3))
+        start = time.perf_counter()
+        time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method2"] += time.perf_counter() - start
 
-    @measure_runtime
     @chrono
     def recursive(self, depth):
-        if depth > 0:
-            time.sleep(random.uniform(0.01, 0.03))
-            self.recursive(depth - 1)
+        if not depth: return
+        start = time.perf_counter()
+        time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method2"] += time.perf_counter() - start
+        self.recursive(depth - 1)
+        start = time.perf_counter()
+        time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method2"] += time.perf_counter() - start
 
-    @measure_runtime
     @chrono
     def generator(self):
+        start = time.perf_counter()
+        time.sleep(random.uniform(0.01, 0.03))
+        self.runtime["method2"] += time.perf_counter() - start
         for i in range(3):
+            start = time.perf_counter()
             time.sleep(random.uniform(0.01, 0.03))
+            self.runtime["method2"] += time.perf_counter() - start
             yield i
+            start = time.perf_counter()
+            time.sleep(random.uniform(0.01, 0.03))
+            self.runtime["method2"] += time.perf_counter() - start
 
 @pytest.mark.xfail
 def test_chrono_class():
@@ -120,16 +128,17 @@ def test_chrono_func():
         time.sleep(0.001)
 
     foo()
-    assert 'test_chrono_func.<locals>.foo' in evn.global_chrono.checkpoints
+    print(evn.global_chrono.profile)
+    assert 'test_chrono_func.<locals>.foo' in evn.global_chrono.profile
 
 def test_context():
     with Chrono() as t:
-        t.checkpoint('foo')
-        t.checkpoint('bar')
-        t.checkpoint('baz')
-    assert 'foo' in t.checkpoints
-    assert 'bar' in t.checkpoints
-    assert 'baz' in t.checkpoints
+        t.exit_context('foo')
+        t.exit_context('bar')
+        t.exit_context('baz')
+    assert 'foo' in t.profile
+    assert 'bar' in t.profile
+    assert 'baz' in t.profile
 
 def allclose(a, b, atol):
     if isinstance(a, float):
@@ -143,11 +152,11 @@ def allclose(a, b, atol):
 def test_chrono():
     with Chrono() as chrono:
         time.sleep(0.02)
-        chrono.checkpoint("foo")
+        chrono.exit_context("foo")
         time.sleep(0.06)
-        chrono.checkpoint("bar")
+        chrono.exit_context("bar")
         time.sleep(0.04)
-        chrono.checkpoint("baz")
+        chrono.exit_context("baz")
 
     times = chrono.report_dict()
     assert allclose(times["foo"], 0.02, atol=0.05)
@@ -164,9 +173,9 @@ def test_chrono():
         chrono.report_dict(order="oarenstoiaen")
 
 def aaaa(chrono=None):
-    checkpoint(chrono=chrono, funcbegin=True)
+    exit_context(chrono=chrono, funcbegin=True)
     time.sleep(0.2)
-    checkpoint(chrono=chrono)
+    exit_context(chrono=chrono)
 
 ##@chrono
 def bbbb(**kw):
@@ -178,7 +187,7 @@ def bbbb(**kw):
 
     t = Chrono()
     kw = evn.Bunch(chrono=t)
-    checkpoint('label', chrono=t)
+    exit_context('label', chrono=t)
     bbbb(**kw)
     breport = t.report(printme=False)
 
@@ -191,11 +200,11 @@ def bbbb(**kw):
 def test_summary():
     with Chrono() as chrono:
         time.sleep(0.01)
-        chrono.checkpoint("foo")
+        chrono.exit_context("foo")
         time.sleep(0.03)
-        chrono.checkpoint("foo")
+        chrono.exit_context("foo")
         time.sleep(0.02)
-        chrono.checkpoint("foo")
+        chrono.exit_context("foo")
     times = chrono.report_dict(summary=sum)
     assert allclose(times["foo"], 0.06, atol=0.02)
 
@@ -216,28 +225,28 @@ def test_summary():
 
 def test_chrono_interjection():
     with Chrono() as chrono:
-        chrono.checkpoint("bar")
-        chrono.checkpoint()
-        chrono.checkpoint("baz")
-        chrono.checkpoint("bar")
-        chrono.checkpoint("foo")
-    assert set(chrono.checkpoints) == {'foo', 'bar', 'baz'}
-    assert len(chrono.checkpoints['foo']) == 1
-    assert len(chrono.checkpoints['bar']) == 3
-    assert len(chrono.checkpoints['baz']) == 1
+        chrono.exit_context("bar")
+        chrono.exit_context()
+        chrono.exit_context("baz")
+        chrono.exit_context("bar")
+        chrono.exit_context("foo")
+    assert set(chrono.profile) == {'foo', 'bar', 'baz'}
+    assert len(chrono.profile['foo']) == 1
+    assert len(chrono.profile['bar']) == 3
+    assert len(chrono.profile['baz']) == 1
 
 def test_chrono_interjection_keyword():
     with Chrono() as chrono:
-        chrono.checkpoint("foo")
-        chrono.checkpoint(interject=True)
-        chrono.checkpoint("baz")
-        chrono.checkpoint("bar")
-        chrono.checkpoint("foo")
+        chrono.exit_context("foo")
+        chrono.exit_context(interject=True)
+        chrono.exit_context("baz")
+        chrono.exit_context("bar")
+        chrono.exit_context("foo")
 
-    assert set(chrono.checkpoints) == {'foo', 'bar', 'baz'}
-    assert len(chrono.checkpoints['foo']) == 2
-    assert len(chrono.checkpoints['bar']) == 2
-    assert len(chrono.checkpoints['baz']) == 1
+    assert set(chrono.profile) == {'foo', 'bar', 'baz'}
+    assert len(chrono.profile['foo']) == 2
+    assert len(chrono.profile['bar']) == 2
+    assert len(chrono.profile['baz']) == 1
 
 if __name__ == '__main__':
     main()

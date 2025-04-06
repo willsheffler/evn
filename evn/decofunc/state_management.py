@@ -24,7 +24,7 @@ def preserve_random_state(func0=None, seed0=None):
 
     def deco(func):
 
-        @evn.wraps(func)
+        @functools.wraps(func)
         def wrapper(*args, **kw):
             with evn.temporary_random_seed(seed=kw.get('seed', seed0)):
                 return func(*args, **kw)

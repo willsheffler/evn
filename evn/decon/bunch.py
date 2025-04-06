@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Generic, TypeVar, Mapping, Iterable
 from evn.decon.item_wise import item_wise_operations
 from evn.decon.attr_access import subscriptable_for_attributes
-from evn.dev.inspect import summary
+from evn._prelude.inspect import summary
 from evn import NA
 
 __all__ = ('Bunch', 'bunchify', 'unbunchify', 'make_autosave_hierarchy', 'unmake_autosave_hierarchy')

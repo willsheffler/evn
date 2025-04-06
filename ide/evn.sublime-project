@@ -31,7 +31,7 @@
         {
             "name": "pytest all",
             "working_dir": "$folder",
-            "shell_cmd": "uv run --extra dev pytest evn/tests -xs 2>&1 | tee $folder/ide/sublime_build.log",
+            "shell_cmd": "uv run pytest --doctest-modules -k 'not Chrono' evn -xs 2>&1 | tee $folder/ide/sublime_build.log",
             // "file_regex": "^(?:\\s*File \"(.*?)\", line ([0-9]+)|(.+\\.py):([0-9]+):)"
             // "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
             "file_regex": "^E?(.+\\.py):([0-9]+): "

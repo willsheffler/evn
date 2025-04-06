@@ -17,7 +17,7 @@ Example:
 ...     def greet(self): pass
 >>> from evn.cli.cli_command_resolver import walk_commands
 >>> commands = list(walk_commands(Top))
->>> assert any(p == 'top.greet' for p, _ in commands)
+>>> assert any(p == '<exe> top greet' for p, _ in commands)
 
 See Also:
 - test_cli_command_resolver.py

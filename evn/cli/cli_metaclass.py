@@ -185,10 +185,6 @@ def walk_click_group(group: click.Group = CLI.__group__, visitor=lambda *a: None
     Args:
         group (click.Group): The root Click group to inspect.
         prefix (str): Internal use for recursive path tracking.
-
-    Example:
-        >>> walk_click_group(cli)
-        top-level, top-level.subcommand, ...
     """
     commands = []
 

@@ -40,7 +40,7 @@ def safe_lru_cache(func=None, *, maxsize=128):
     def decorator(func):
         cache = functools.lru_cache(maxsize=maxsize)(func)
 
-        @evn.wraps(func)
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
                 hash(args)

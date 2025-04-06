@@ -48,7 +48,7 @@ def test_set_app_callback_defaults_from_config():
     config2 = evn.cli.get_config_from_app_defaults(App)
     if config != config2:
         print('fail test_set_app_defaults_from_config:')
-        evn.diff(config, config2, show=True)
+        evn.diff(config, config2, out=print)
         assert config == config2
     config.testapp._callback.foo = 'bar'
 
@@ -66,7 +66,7 @@ def test_big_change():
 
     config = evn.config.get_config(App)
     mutated = evn.cli.mutate_config(App, config, action_func=mutate)
-    # evn.diff(config, mutated, show=True)
+    # evn.diff(config, mutated, out=print)
     assert config != mutated
     print('\nconfig', config.testapp.buildtools.clean.all.verbose)
     print('mutate', mutated.testapp.buildtools.clean.all.verbose)
@@ -79,11 +79,11 @@ def test_big_change():
     assert config != mutated
     assert config2 == mutated
     assert config != config2
-    # evn.diff(mutated, config, show=True)
-    # evn.diff(mutated, config2, show=True)
+    # evn.diff(mutated, config, out=print)
+    # evn.diff(mutated, config2, out=print)
     if mutated != config2:
         print('fail test_big_change:')
-        evn.diff(mutated, config2, show=True)
+        evn.diff(mutated, config2, out=print)
         assert mutated == config2
 
 if __name__ == '__main__':

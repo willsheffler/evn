@@ -18,6 +18,7 @@ Example:
 """
 
 import contextlib
+import functools
 from pathlib import Path
 import evn
 
@@ -173,7 +174,7 @@ def iterize_on_first_param(
 
     def deco(func: evn.F) -> evn.F:
 
-        @evn.wraps(func)
+        @functools.wraps(func)
         def wrapper(arg0, *args, **kw):
             if is_iterizeable(arg0, basetype=basetype, splitstr=splitstr, allowmap=allowmap):
                 if splitstr and isinstance(arg0, str) and ' ' in arg0:

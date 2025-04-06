@@ -8,11 +8,6 @@ from typing import (
     Iterator,
     TypeVar,
     Union,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Sequence,
-    MutableSequence,
 )
 if sys.version_info.minor >= 10:
     from typing import ParamSpec
@@ -43,31 +38,3 @@ else:
 def basic_typevars(which) -> list[Union[TypeVar, ParamSpec]]:
     result = [globals()[k] for k in which]
     return result
-
-def isstr(s: Any) -> bool:
-    return isinstance(s, str)
-
-def isint(s: Any) -> bool:
-    return isinstance(s, int)
-
-def islist(s: Any) -> bool:
-    return isinstance(s, list)
-
-def isdict(s: Any) -> bool:
-    return isinstance(s, dict)
-
-def isseq(s: Any) -> bool:
-    return isinstance(s, Sequence)
-
-def ismap(s: Any) -> bool:
-    return isinstance(s, Mapping)
-
-def isseqmut(s: Any) -> bool:
-    return isinstance(s, MutableSequence)
-
-def ismapmut(s: Any) -> bool:
-    return isinstance(s, MutableMapping)
-
-def isiter(s: Any) -> bool:
-    return isinstance(s, Iterable)
-

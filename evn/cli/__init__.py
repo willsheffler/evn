@@ -28,8 +28,9 @@ Usage Example:
 ...         print(f"Hello, {name}")
 >>> cli = Hello.__group__
 >>> from click.testing import CliRunner
->>> result = CliRunner().invoke(cli, ["--name", "Alice"])
+>>> result = CliRunner().invoke(cli, ["greet", "--name", "Alice"])
 >>> result.output
+'Hello, Alice\\n'
 
 See Also:
 - Click documentation: https://click.palletsprojects.com/

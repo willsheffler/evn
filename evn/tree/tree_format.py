@@ -127,7 +127,7 @@ def print_spider_tree(
     orient='vertical',
     width=80,
     mirror=True,
-    show=True,
+    out=print,
     **kw,
 ):
     from PrettyPrint import PrettyPrintTree

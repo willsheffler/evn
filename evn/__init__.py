@@ -52,8 +52,21 @@ builtins.ic = ic  # make ic available globally
 
 evn_init_checkpoint('INIT evn basic imports')
 from evn._prelude.version import __version__ as __version__
-from evn._prelude.basic_types import NA as NA, NoOp as NoOp
-from evn._prelude.wraps import wraps as wraps
+from evn._prelude.basic_types import (
+    NA as NA,
+    NoOp as NoOp,
+    isstr as isstr,
+    isint as isint,
+    islist as islist,
+    isdict as isdict,
+    isseq as isseq,
+    ismap as ismap,
+    isseqmut as isseqmut,
+    ismapmut as ismapmut,
+    isiter as isiter,
+)
+
+from evn._prelude.make_decorator import make_decorator as make_decorator
 from evn._prelude.import_util import (
     is_installed as is_installed,
     not_installed as not_installed,
@@ -67,9 +80,7 @@ from evn._prelude.lazy_import import (
     maybeimports as maybeimports,
     LazyImportError as LazyImportError,
 )
-from evn._prelude.lazy_dispatch import (
-    lazydispatch as lazydispatch
-)
+from evn._prelude.lazy_dispatch import (lazydispatch as lazydispatch)
 from evn._prelude.structs import (
     struct as struct,
     mutablestruct as mutablestruct,
@@ -83,15 +94,6 @@ from evn._prelude.typehints import (
     C as C,
     P as P,
     F as F,
-    isstr as isstr,
-    isint as isint,
-    islist as islist,
-    isdict as isdict,
-    isseq as isseq,
-    ismap as ismap,
-    isseqmut as isseqmut,
-    ismapmut as ismapmut,
-    isiter as isiter,
     FieldSpec as FieldSpec,
     EnumerIter as EnumerIter,
     EnumerListIter as EnumerListIter,
@@ -155,11 +157,12 @@ from evn.dev.contexts import (
     np_printopts as np_printopts,
     np_compact as np_compact,
 )
-from evn.dev.inspect import (
+from evn._prelude.inspect import (
     inspect as inspect,
     show as show,
     diff as diff,
     summary as summary,
+    trace as trace,
 )
 from evn.testing import maintest as maintest
 from evn.tool import filter_python_output

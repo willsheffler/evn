@@ -28,7 +28,7 @@ Example:
 >>> log[0]["event"]
 'boot'
 >>> log[0]["path"]
-'dummy'
+'<exe> dummy'
 
 See Also:
 - test_cli_logger.py

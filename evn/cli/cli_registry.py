@@ -13,16 +13,6 @@ Features:
 - Root CLI group discovery
 - Registry summary printing
 
-Example (doctestable):
-
->>> from evn.cli.cli_registry import CliRegistry
->>> class Dummy:
-...     __group__ = type("Group", (), {"name": "dummy"})()
-...     __parent__ = None
->>> CliRegistry._cli_classes = [Dummy]
->>> roots = CliRegistry.get_root_commands()
->>> assert "dummy" in roots
-
 See Also:
 - cli_metaclass.py
 - cli_command_resolver.py

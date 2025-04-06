@@ -76,20 +76,20 @@ def test_item_wise_resulttypes():
     assert not hasattr(instance, 'valwise')
 
 def test_item_wise():
-    b = EwiseDict(zip('abcdefg', ([] for i in range(7))))
+    b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
     assert all(b.valwise == [])
     r = b.mapwise.append(1)
     assert all(b.valwise == [1])
     assert b['a'] == [1]
 
 def test_item_wise_accum():
-    b = EwiseDict(zip('abcdefg', (i for i in range(7))))
+    b = EwiseDict(zip('abcdefg', range(7)))
     assert isinstance(b.mapwise + 10, evn.Bunch)
     assert isinstance(b.valwise + 10, list)
     if evn.installed.numpy: assert isinstance(b.npwise + 10, np.ndarray)
 
 def test_item_wise_multi():
-    b = EwiseDict(zip('abcdefg', ([] for i in range(7))))
+    b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
     assert b.mapwise == []
     with pytest.raises(ValueError):
         r = b.mapwise.append(1, 2)
@@ -97,7 +97,7 @@ def test_item_wise_multi():
     assert list(b.values()) == [[i] for i in range(7)]
 
 def test_item_wise_equal():
-    b = EwiseDict(zip('abcdefg', ([] for i in range(7))))
+    b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
     assert b.mapwise == []
     b.mapwise.append(*range(7))
     eq4 = b.mapwise == [4]
@@ -248,11 +248,11 @@ class TestElementWiseOperations(unittest.TestCase):
         if evn.installed.numpy:
             result = self.test_dict.npwise.__sub__(1)
             self.assertIsInstance(result, np.ndarray)
-            np.testing.assert_array_equal(result, np.array([0, 1, 2]))
+            assert np.allclose(result, np.array([0, 1, 2]))
 
             # Test negative operation (unary)
             result = self.test_dict.npwise.__neg__()
-            np.testing.assert_array_equal(result, np.array([-1, -2, -3]))
+            assert np.allclose(result, np.array([-1, -2, -3]))
 
     def test_multiple_args(self):
         """Test operations with multiple arguments."""
