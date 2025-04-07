@@ -8,32 +8,34 @@ re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
 re_null = r'a^'  # never matches
 presets = dict(
     unittest=dict(
-        refile=(
-            r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py'
-        ),
-        refunc=(
-            r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
-        ),
+        refile=
+        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py'
+         ),
+        refunc=
+        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
+         ),
         minlines=30,
     ),
     boilerplate=dict(
-        refile=(
-            r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|evn/dev/inspect.py'
-        ),
-        refunc=(
-            r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
-        ),
+        refile=
+        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|evn/dev/inspect.py'
+         ),
+        refunc=
+        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
+         ),
         minlines=30,
     ),
     aggressive=dict(
-        refile=(
-            r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|<module>|evn/contexts.py|multipledispatch/dispatcher.py|evn/dev/inspect.py|meta/kwcall.py'
-        ),
-        refunc=(
-            r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall|main|kwcall'
-        ),
+        refile=
+        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|<module>|evn/contexts.py|multipledispatch/dispatcher.py|evn/dev/inspect.py|meta/kwcall.py'
+         ),
+        refunc=
+        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall|main|kwcall'
+         ),
         minlines=1,
-    ))
+    ),
+)
+
 
 def filter_python_output(
     text,
@@ -50,25 +52,40 @@ def filter_python_output(
     preset = presets[preset]
     # if entrypoint == 'codetool': return text
     minlines = minlines or preset['minlines']
-    if preset and re_file == re_null: re_file = preset['refile']
-    if preset and re_func == re_null: re_func = preset['refunc']
-    if isinstance(re_file, str): re_file = re.compile(re_file)
-    if isinstance(re_func, str): re_func = re.compile(re_func)
+    if preset and re_file == re_null:
+        re_file = preset['refile']
+    if preset and re_func == re_null:
+        re_func = preset['refunc']
+    if isinstance(re_file, str):
+        re_file = re.compile(re_file)
+    if isinstance(re_func, str):
+        re_func = re.compile(re_func)
     result = []
-    file, lineno, func, block = None, None, None, None
+    file, _lineno, func, block = None, None, None, None
     skipped = []
     lines = text.splitlines()
     if len(lines) < minlines:
         return text
     for line in lines:
         line = _strip_line_extra_whitespace(line)
-        if not line.strip() and not keep_blank_lines: continue
+        if not line.strip() and not keep_blank_lines:
+            continue
         if m := re_block.match(line):
-            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped)
-            file, linene, func, block = *m.groups(), [line]
+            _finish_block(preset, arrows, block, file, func, re_file, re_func,
+                          result, skipped)
+            file, _linene, func, block = *m.groups(), [line]
         elif m := re_end.match(line):
-            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=True)
-            file, lineno, func, block = None, None, None, None
+            _finish_block(preset,
+                          arrows,
+                          block,
+                          file,
+                          func,
+                          re_file,
+                          re_func,
+                          result,
+                          skipped,
+                          keep=True)
+            file, _lineno, func, block = None, None, None, None
             result.append(line)
         elif block:
             block.append(line)
@@ -79,7 +96,17 @@ def filter_python_output(
         text = _filter_numpy_version_nonsense(text)
     return text
 
-def _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=False):
+
+def _finish_block(preset,
+                  arrows,
+                  block,
+                  file,
+                  func,
+                  re_file,
+                  re_func,
+                  result,
+                  skipped,
+                  keep=False):
     if block:
         filematch = re_file.search(file)
         funcmatch = re_func.search(func)
@@ -93,12 +120,16 @@ def _finish_block(preset, arrows, block, file, func, re_file, re_func, result, s
                 skipped.clear()
             result.extend(block)
 
+
 def _strip_line_extra_whitespace(line):
-    if not line[:60].strip(): return line.strip()
+    if not line[:60].strip():
+        return line.strip()
     return line.rstrip()
+
 
 # def _strip_text_extra_whitespace(text):
 # return re.sub(r'\n\n', os.linesep, text, re.MULTILINE)
+
 
 def _filter_numpy_version_nonsense(text):
     text = text.replace(
@@ -112,7 +143,9 @@ If you are a user of the module, the easiest solution will be to
 downgrade to 'numpy<2' or try to upgrade the affected module.
 We expect that some modules will need time to support NumPy 2.
 
-""", '')
+""",
+        '',
+    )
     text = text.replace(
         """A module that was compiled using NumPy 1.x cannot be run in
 NumPy 2.2.3 as it may crash. To support both 1.x and 2.x
@@ -121,28 +154,39 @@ Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
 If you are a user of the module, the easiest solution will be to
 downgrade to 'numpy<2' or try to upgrade the affected module.
 We expect that some modules will need time to support NumPy 2.
-""", '')
+""",
+        '',
+    )
     text = text.replace(
         """    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
 AttributeError: _ARRAY_API not found
-""", '')
-    text = text.replace("""AttributeError: _ARRAY_API not found
+""",
+        '',
+    )
+    text = text.replace(
+        """AttributeError: _ARRAY_API not found
 
 
 
-Traceback""", '')
+Traceback""",
+        '',
+    )
     return text
 
-'''Traceback (most recent call last):
+
+"""Traceback (most recent call last):
   File "example.py", line 10, in <module>
     1/0
 ZeroDivisionError: division by zero
 foof
-ISNR'''
+ISNR"""
+
 
 def analyze_python_errors_log(text):
     # traceback_pattern = re.compile(r'Traceback \(most recent call last\):.*?\n[A-Za-z]+?Error:.*?$', re.DOTALL)
-    traceback_pattern = re.compile(r'Traceback \(most recent call last\):.*?(?=\nTraceback |\Z)', re.DOTALL)
+    traceback_pattern = re.compile(
+        r'Traceback \(most recent call last\):.*?(?=\nTraceback |\Z)',
+        re.DOTALL)
     file_line_pattern = re.compile(r'\n\s*File "(.*?\.py)", line (\d+), in ')
     error_pattern = re.compile(r'\n\s*[A-Za-z_0-9]+Error: .*')
     """Analyze Python error logs and create a report of unique stack traces.
@@ -175,6 +219,7 @@ def analyze_python_errors_log(text):
             trace_map[key] = trace
     return create_errors_log_report(trace_map)
 
+
 def create_errors_log_report(trace_map):
     """Generate a report from a map of unique stack traces.
 
@@ -186,18 +231,20 @@ def create_errors_log_report(trace_map):
         str: A formatted report of the unique stack traces.
 
     Example:
-        >>> trace_map = {('1/0', 'division by zero'): '''Traceback (most recent call last):
+        >>> trace_map = {
+        ...     ('1/0', 'division by zero'): '''Traceback (most recent call last):
         ...   File "example.py", line 10, in <module>
         ...     1/0
-        ... ZeroDivisionError: division by zero'''}
+        ... ZeroDivisionError: division by zero'''
+        ... }
         >>> report = create_errors_log_report(trace_map)
         >>> 'Unique Stack Traces Report (1 unique traces):' in report
         True
     """
     with evn.capture_stdio() as printed:
-        print(f"Unique Stack Traces Report ({len(trace_map)} unique traces):")
-        print("="*80 + "\n")
-        for (_, trace) in trace_map.items():
+        print(f'Unique Stack Traces Report ({len(trace_map)} unique traces):')
+        print('=' * 80 + '\n')
+        for _, trace in trace_map.items():
             print(trace)
-            print("-"*80 + "\n")
+            print('-' * 80 + '\n')
     return printed.read()

@@ -1,8 +1,10 @@
 import pytest
 import evn
 
+
 def main():
     evn.testing.maintest(namespace=globals())
+
 
 bunch = evn.Bunch(
     dot_norm=evn.Bunch(frac=0.174, tol=0.04, total=282, passes=49),
@@ -14,11 +16,12 @@ bunch = evn.Bunch(
     cageang=evn.Bunch(frac=0.5, tol=0.1, total=2, passes=1),
 )
 
+
 def test_make_table_dict_of_dict():
     with evn.capture_stdio() as out:
         evn.print.print_table(bunch)
     printed = out.read()
-    assert printed.strip() == """
+    assert (printed.strip() == """
 ┏━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
 ┃ key           ┃ frac    ┃ tol     ┃ total ┃ passes ┃
 ┡━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
@@ -30,12 +33,14 @@ def test_make_table_dict_of_dict():
 │ nfold         │   1.000 │   0.200 │    5  │    5   │
 │ cageang       │   0.500 │   0.100 │    2  │    1   │
 └───────────────┴─────────┴─────────┴───────┴────────┘
-""".strip()
+""".strip())
+
 
 def test_summary_numpy():
     np = pytest.importorskip('numpy')
-    assert evn.summary(np.arange(3)) == "[0 1 2]"
-    assert evn.summary(np.arange(300)) == "ndarray[300]"
+    assert evn.summary(np.arange(3)) == '[0 1 2]'
+    assert evn.summary(np.arange(300)) == 'ndarray[300]'
+
 
 if __name__ == '__main__':
     main()

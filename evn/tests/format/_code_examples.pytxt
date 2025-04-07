@@ -1,4 +1,4 @@
-############################## test spacing unchanged ###############################
+#$@!########################## test spacing unchanged ###############################
 @dataclass
 class FormatHistory:
     """Tracks original and formatted code for all files being processed."""
@@ -20,10 +20,8 @@ class FormatHistory:
         """Retrieve the formatted code."""
         return self.buffers[filename]["formatted"]
 
-############################## test oneline spaces ###############################
+#$@!########################### test oneline spaces ###############################
 with open('/tmp/test.txt'):     pass
-#----------------------------- ↑ original ↓ formatted ----------------------------
+#$@!----------------------------- ↑ original ↓ formatted ----------------------------
 with open('/tmp/test.txt'): pass
-################################################################################
-
-
+#$@!############################################################################

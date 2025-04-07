@@ -6,6 +6,7 @@ from types import ModuleType
 import typing
 from .import_util import is_installed
 
+
 def lazyimports(
         *names: str,
         package: typing.Sequence[str] = (),
@@ -23,27 +24,37 @@ def lazyimports(
 
     """
     assert len(names)
-    if not names: raise ValueError('package name is required')
-    if package: assert len(package) == len(names) and not isinstance(package, str)
-    else: package = ('', ) * len(names)
-    modules = [lazyimport(name, package=pkg, **kw) for name, pkg in zip(names, package)]
+    if not names:
+        raise ValueError('package name is required')
+    if package:
+        assert len(package) == len(names) and not isinstance(package, str)
+    else:
+        package = ('', ) * len(names)
+    modules = [
+        lazyimport(name, package=pkg, **kw)
+        for name, pkg in zip(names, package)
+    ]
     return modules
+
 
 def timed_import_module(name):
     # import evn
     # evn.global_chrono.checkpoint(interject=True)
     if name not in sys.modules:
-        mod = import_module(name)
+        import_module(name)
     # evn.global_chrono.checkpoint(f'LAZY import {name}')
     return sys.modules[name]
 
-def lazyimport(name: str,
-               package: str = '',
-               pip: bool = False,
-               mamba: bool = False,
-               channels: str = '',
-               warn: bool = True,
-               maybeimport=False) -> ModuleType:
+
+def lazyimport(
+    name: str,
+    package: str = '',
+    pip: bool = False,
+    mamba: bool = False,
+    channels: str = '',
+    warn: bool = True,
+    maybeimport=False,
+) -> ModuleType:
     if not typing.TYPE_CHECKING and not maybeimport:
         return _LazyModule(name, package, pip, mamba, channels, warn)
     try:
@@ -51,21 +62,31 @@ def lazyimport(name: str,
     except ImportError:
         return FalseModule(name)
 
+
 def maybeimport(name) -> ModuleType:
     return lazyimport(name, maybeimport=True)
+
 
 def maybeimports(*names) -> list[ModuleType]:
     return lazyimports(*names, maybeimport=True)
 
+
 class LazyImportError(ImportError):
     pass
+
 
 class _LazyModule(ModuleType):
     """A class to represent a lazily imported module."""
 
     # __slots__ = ('_lazymodule_name', '_lazymodule_package', '_lazymodule_pip', '_lazymodule_mamba', '_lazymodule_channels', '_lazymodule_callerinfo', '_lazymodule_warn')
 
-    def __init__(self, name: str, package: str = '', pip=False, mamba=False, channels='', warn=True):
+    def __init__(self,
+                 name: str,
+                 package: str = '',
+                 pip=False,
+                 mamba=False,
+                 channels='',
+                 warn=True):
         self._lazymodule_name = name
         self._lazymodule_package = package or name.split('.', maxsplit=1)[0]
         self._lazymodule_pip = pip
@@ -74,6 +95,7 @@ class _LazyModule(ModuleType):
         self._lazymodule_warn = warn
         with contextlib.suppress(ImportError, AttributeError):
             from evn.meta import caller_info
+
             self._lazymodule_callerinfo = caller_info(excludefiles=[__file__])
         # if name not in _DEBUG_ALLOW_LAZY_IMPORT:
         #     self._lazymodule_now()
@@ -84,7 +106,8 @@ class _LazyModule(ModuleType):
         try:
             return timed_import_module(self._lazymodule_name)
         except ImportError as e:
-            if 'doctest' in sys.modules: return FalseModule(self._lazymodule_name)
+            if 'doctest' in sys.modules:
+                return FalseModule(self._lazymodule_name)
             if hasattr(self, '_lazymodule_callerinfo'):
                 ci = self._lazymodule_callerinfo
                 callinfo = f'\n  File "{ci.filename}", line {ci.lineno}\n    {ci.code}'
@@ -109,9 +132,11 @@ class _LazyModule(ModuleType):
             if self._lazymodule_pip and self._lazymodule_pip != 'user':
                 if not _skip_global_install:
                     try:
-                        sys.stderr.write(f'PIPIMPORT {self._lazymodule_package}\n')
+                        sys.stderr.write(
+                            f'PIPIMPORT {self._lazymodule_package}\n')
                         result = subprocess.check_call(
-                            f'{sys.executable} -mpip install {self._lazymodule_package}'.split())
+                            f'{sys.executable} -mpip install {self._lazymodule_package}'
+                            .split())
                     except:  # noqa
                         pass
             try:
@@ -119,10 +144,12 @@ class _LazyModule(ModuleType):
             except (ValueError, AssertionError, ModuleNotFoundError):
                 if self._lazymodule_pip and self._lazymodule_pip != 'nouser':
                     _skip_global_install = True
-                    sys.stderr.write(f'PIPIMPORT --user {self._lazymodule_package}\n')
+                    sys.stderr.write(
+                        f'PIPIMPORT --user {self._lazymodule_package}\n')
                     try:
                         result = subprocess.check_call(
-                            f'{sys.executable} -mpip install --user {self._lazymodule_package}'.split())
+                            f'{sys.executable} -mpip install --user {self._lazymodule_package}'
+                            .split())
                         sys.stderr.write(str(result))
                     except:  # noqa
                         pass
@@ -132,7 +159,8 @@ class _LazyModule(ModuleType):
         return self._lazymodule_name in sys.modules
 
     def __getattr__(self, name: str):
-        if name.startswith('_lazymodule_'): return self.__dict__[name]
+        if name.startswith('_lazymodule_'):
+            return self.__dict__[name]
         if name == '_loaded_module':
             if '_loaded_module' not in self.__dict__:
                 self._loaded_module = self._lazymodule_import_now()
@@ -152,10 +180,12 @@ class _LazyModule(ModuleType):
     def __bool__(self) -> bool:
         return bool(is_installed(self._lazymodule_name))
 
+
 class FalseModule(ModuleType):
 
     def __bool__(self):
         return False
+
 
 _all_skipped_lazy_imports = set()
 _skip_global_install = False

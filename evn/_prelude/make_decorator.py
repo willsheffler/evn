@@ -15,7 +15,8 @@ Example:
     ...     return func(*args, **kwargs)
 
     >>> @printer
-    ... def hello(): return "hi"
+    ... def hello():
+    ...     return 'hi'
 
     >>> hello()
     * hello
@@ -25,12 +26,12 @@ Basic usage:
 
     >>> @make_decorator
     ... def trace(func, args, kwargs):
-    ...     print("Calling", func.__name__)
+    ...     print('Calling', func.__name__)
     ...     return func(*args, **kwargs)
 
     >>> @trace
     ... def greet():
-    ...     return "hello"
+    ...     return 'hello'
 
     >>> greet()
     Calling greet
@@ -43,7 +44,8 @@ Using default config:
     ...     return msg + func(*args, **kwargs)
 
     >>> @tagged
-    ... def foo(): return 'bar'
+    ... def foo():
+    ...     return 'bar'
 
     >>> foo()
     'start:bar'
@@ -51,7 +53,8 @@ Using default config:
 Overriding decorator config:
 
     >>> @tagged(msg='>>')
-    ... def baz(): return 'boo'
+    ... def baz():
+    ...     return 'boo'
 
     >>> baz()
     '>>boo'
@@ -64,7 +67,8 @@ Decorating a method:
 
     >>> class Math:
     ...     @add_extra(extra=5)
-    ...     def add(self, x, y): return x + y
+    ...     def add(self, x, y):
+    ...         return x + y
 
     >>> Math().add(1, 2)
     8
@@ -73,8 +77,11 @@ Decorating a class:
 
     >>> @add_extra(extra=2)
     ... class Ops:
-    ...     def mul(self, x, y): return x * y
-    ...     def sub(self, x, y): return x - y
+    ...     def mul(self, x, y):
+    ...         return x * y
+    ...
+    ...     def sub(self, x, y):
+    ...         return x - y
 
     >>> o = Ops()
     >>> o.mul(3, 4)
@@ -86,6 +93,7 @@ Decorating a class:
 import inspect
 import functools
 import wrapt
+
 
 def make_decorator(userwrap=None, strict=True, **decokw):
     """
@@ -120,13 +128,19 @@ def make_decorator(userwrap=None, strict=True, **decokw):
         return functools.partial(make_decorator, **decokw)
 
     if not callable(userwrap):
-        raise TypeError(f"make_decorator first arg {type(userwrap)} is not callable")
+        raise TypeError(
+            f'make_decorator first arg {type(userwrap)} is not callable')
 
-    def decorator(userwrapped=None, *, strict=strict, decokw=decokw, **decokw2):
+    def decorator(userwrapped=None,
+                  *,
+                  strict=strict,
+                  decokw=decokw,
+                  **decokw2):
         if userwrapped is None:
             if strict and not decokw2.keys() <= decokw.keys():
                 raise TypeError(
-                    f"Decorator {userwrap.__name__} doesn't accept args: {decokw2.keys() - decokw.keys()}")
+                    f"Decorator {userwrap.__name__} doesn't accept args: {decokw2.keys() - decokw.keys()}"
+                )
             return functools.partial(decorator, **(decokw | decokw2))
 
         all_kwargs = decokw | decokw2
@@ -135,7 +149,7 @@ def make_decorator(userwrap=None, strict=True, **decokw):
             # Handle class wrapping directly, no wrapt.decorator
             cls = userwrapped
             for name, attr in vars(cls).items():
-                if name.startswith("__"):
+                if name.startswith('__'):
                     continue
                 if isinstance(attr, staticmethod):
                     func = attr.__func__

@@ -8,6 +8,7 @@ config_test = evn.Bunch(
     re_exclude=[],
 )
 
+
 def main():
     evn.tests.maintest(
         namespace=globals(),
@@ -16,12 +17,15 @@ def main():
         check_xfail=False,
     )
 
+
 def test_locals():
     foo, bar, baz = 1, 2, 3
     assert evn.meta.picklocals('foo bar') == dict(foo=1, bar=2)
 
+
 def test_addreduce():
     assert evn.addreduce([[1], [2, 3], [4]]) == [1, 2, 3, 4]
+
 
 @pytest.mark.xfail
 def test_get_function_for_which_call_to_caller_is_argument():
@@ -34,6 +38,7 @@ def test_get_function_for_which_call_to_caller_is_argument():
         assert uncle_func == FIND_THIS_FUNCTION
 
     FIND_THIS_FUNCTION(1, 2, CALLED_TO_PRODUCE_ARGUMENT(), 3)
+
 
 def test_kwcheck():
     kw = dict(apple='apple', banana='banana', cherry='cherry')
@@ -54,18 +59,23 @@ def test_kwcheck():
 
     assert evn.kwcall(kw, bar, banana='bananums') == ('bananums', 'cherry')
 
+
 def target_func(a, b, c=3):
     pass
+
 
 class SomeClass:
 
     def method(self, param1, param2, optional=None):
         pass
 
+
 class_method = SomeClass().method
+
 
 def flexible_func(a, b, *args, c=3, **kwargs):
     pass
+
 
 def test_kwcheck_explicit_function_filtering():
     """Test basic filtering with explicitly provided function."""
@@ -74,6 +84,7 @@ def test_kwcheck_explicit_function_filtering():
 
     # Should only keep keys that match target_func parameters
     assert result == {'a': 1, 'b': 2}
+
 
 def test_kwcheck_checktypos_flag_disabled():
     """Test that no typo checking occurs when checktypos=False."""
@@ -87,6 +98,7 @@ def test_kwcheck_checktypos_flag_disabled():
     # Should not raise TypeError because checktypos=False
     result = evn.kwcheck(kwargs, func, checktypos=False)
     assert result == {'beta': 2}
+
 
 def test_kwcheck_typo_detection():
     """Test that typos are detected and raise TypeError."""
@@ -104,6 +116,7 @@ def test_kwcheck_typo_detection():
     assert 'alpho' in str(excinfo.value)
     assert 'alpha' in str(excinfo.value)
 
+
 def test_kwcheck_no_typo_for_dissimilar():
     """Test that dissimilar argument names don't trigger typo detection."""
 
@@ -117,6 +130,7 @@ def test_kwcheck_no_typo_for_dissimilar():
     result = evn.kwcheck(kwargs, func)
     assert result == {'first': 1}
 
+
 def test_kwcheck_automatic_function_detection():
     """Test automatic detection of the calling function."""
 
@@ -127,11 +141,13 @@ def test_kwcheck_automatic_function_detection():
     result = evn.kwcheck(kwargs, func)
     assert result == {'x': 1, 'y': 2}
 
+
 def test_kwcheck_no_function_detection_error():
     """Test that an error is raised when function detection fails."""
     with pytest.raises(TypeError) as excinfo:
         evn.kwcheck({'a': 1})
     assert "Couldn't get function" in str(excinfo.value)
+
 
 def test_kwcheck_method_as_function():
     """Test that evn.kwcheck works with methods as well as functions."""
@@ -139,6 +155,7 @@ def test_kwcheck_method_as_function():
 
     result = evn.kwcheck(kwargs, class_method)
     assert result == {'param1': 'value1', 'param2': 'value2'}
+
 
 def test_kwcheck_integration_with_function_call():
     """Test using evn.kwcheck directly in a function call (integration test)."""
@@ -149,10 +166,12 @@ def test_kwcheck_integration_with_function_call():
     # Create a wrapper that simulates the actual usage pattern
     def call_with_kwcheck():
         kwargs = {'required': 'value', 'extra': 'ignored'}
-        return function_with_specific_args(**evn.kwcheck(kwargs, function_with_specific_args))
+        return function_with_specific_args(
+            **evn.kwcheck(kwargs, function_with_specific_args))
 
     result = call_with_kwcheck()
     assert result == ('value', None)
+
 
 def test_kwcheck_with_varargs_and_varkw():
     """Test with functions that use *args and **kwargs."""
@@ -160,10 +179,12 @@ def test_kwcheck_with_varargs_and_varkw():
     result = evn.kwcheck(kwargs, flexible_func)
     assert result == kwargs
 
+
 def test_kwcheck_empty_kwargs():
     """Test with empty kwargs dictionary."""
     result = evn.kwcheck({}, target_func)
     assert result == {}
+
 
 def test_kwcheck_all_kwargs_match():
     """Test when all kwargs match function parameters."""
@@ -172,11 +193,13 @@ def test_kwcheck_all_kwargs_match():
     assert result == kwargs
     assert result is not kwargs  # Should be a copy, not the same object
 
+
 def test_kwcheck_kwargs_with_none_values():
     """Test with None values in kwargs."""
     kwargs = {'a': None, 'b': None, 'd': None}
     result = evn.kwcheck(kwargs, target_func)
     assert result == {'a': None, 'b': None}
+
 
 def test_kwcheck_with_kwargs_func():
     """Test with None values in kwargs."""
@@ -185,16 +208,17 @@ def test_kwcheck_with_kwargs_func():
     result = evn.kwcheck(kwargs, func)
     assert result == kwargs
 
+
 class TestFilterMapping(unittest.TestCase):
 
     def setUp(self):
         self.map = {
-            'test_func1': lambda: "func1",
-            'test_func2': lambda: "func2",
-            'test_funcA': lambda: "funcA",
-            'test_funcB': lambda: "funcB",
-            'test_other': lambda: "other",
-            'normal_func': lambda: "normal",
+            'test_func1': lambda: 'func1',
+            'test_func2': lambda: 'func2',
+            'test_funcA': lambda: 'funcA',
+            'test_funcB': lambda: 'funcB',
+            'test_other': lambda: 'other',
+            'normal_func': lambda: 'normal',
         }
 
     def test_default_behavior(self):
@@ -251,7 +275,9 @@ class TestFilterMapping(unittest.TestCase):
 
     def test_combination_only_and_exclude(self):
         map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, only=('test_func1', ), exclude=('test_func1', ))
+        evn.meta.filter_namespace_funcs(map,
+                                        only=('test_func1', ),
+                                        exclude=('test_func1', ))
         assert 'test_func1' not in map
         assert 'test_func2' not in map
         assert 'test_funcA' not in map
@@ -259,11 +285,14 @@ class TestFilterMapping(unittest.TestCase):
 
     def test_combination_re_only_and_re_exclude(self):
         map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, re_only=('test_func[0-9]', ), re_exclude=('test_func1', ))
+        evn.meta.filter_namespace_funcs(map,
+                                        re_only=('test_func[0-9]', ),
+                                        re_exclude=('test_func1', ))
         assert 'test_func1' not in map
         assert 'test_func2' in map
         assert 'test_funcA' not in map
         assert 'test_funcB' not in map
+
 
 if __name__ == '__main__':
     main()

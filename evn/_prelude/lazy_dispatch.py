@@ -1,31 +1,34 @@
 import re
+
 # lazy_dispatch.py
 import contextlib
 import sys
 from functools import wraps
 from typing import Callable, Union, Dict, Optional
 
-GLOBAL_DISPATCHERS: Dict[str, "LazyDispatcher"] = {}
+GLOBAL_DISPATCHERS: Dict[str, 'LazyDispatcher'] = {}
+
 
 def _qualify(func: Callable, scope: Optional[str]) -> str:
     mod = func.__module__
     name = func.__name__
     qname = func.__qualname__
 
-    if scope == "local":
-        return f"{mod}.{qname}"
-    elif scope == "global":
+    if scope == 'local':
+        return f'{mod}.{qname}'
+    elif scope == 'global':
         return name
-    elif scope == "project":
-        parts = mod.split(".")
+    elif scope == 'project':
+        parts = mod.split('.')
         root = parts[0] if parts else mod
-        return f"{root}.{name}"
-    elif scope == "subpackage":
-        parts = mod.split(".")
-        subpkg = ".".join(parts[:-1])
-        return f"{subpkg}.{name}"
+        return f'{root}.{name}'
+    elif scope == 'subpackage':
+        parts = mod.split('.')
+        subpkg = '.'.join(parts[:-1])
+        return f'{subpkg}.{name}'
     else:
-        return f"{mod}.{qname}"  # default to local
+        return f'{mod}.{qname}'  # default to local
+
 
 class LazyDispatcher:
 
@@ -53,14 +56,15 @@ class LazyDispatcher:
         for typ in list(self._registry):
             if isinstance(typ, str) and typ not in self._resolved_types:
                 if not is_valid_qualname(typ):
-                    raise ValueError(f"Invalid type name: {typ}")
-                modname, _, typename = typ.rpartition(".")
+                    raise ValueError(f'Invalid type name: {typ}')
+                modname, _, typename = typ.rpartition('.')
                 # if not evn.installed[modname]:
                 # raise TypeError(f"Module {modname} is not installed.")
                 if mod := sys.modules.get(modname):
                     with contextlib.suppress(AttributeError):
                         self._resolved_types[typ] = getattr(mod, typename)
-                        self._registry[self._resolved_types[typ]] = self._registry[typ]
+                        self._registry[
+                            self._resolved_types[typ]] = self._registry[typ]
 
     def __call__(self, obj, *args, **kwargs):
         self._resolve_lazy_types()
@@ -82,10 +86,12 @@ class LazyDispatcher:
 
         return self._base_func(obj, *args, **kwargs)
 
+
 def lazydispatch(arg=None, *, scope: Optional[str] = None) -> LazyDispatcher:
     if not isinstance(arg, type) and callable(arg):
         # Case: used as @lazydispatch without arguments
         return LazyDispatcher(arg, scope=scope)
+
     # Case: used as @lazydispatch("type.path", scope=...)
     def wrapper(func):
         key = _qualify(func, scope)
@@ -96,7 +102,9 @@ def lazydispatch(arg=None, *, scope: Optional[str] = None) -> LazyDispatcher:
 
     return wrapper
 
-_QUALNAME_RE = re.compile(r"^[a-zA-Z_][\w\.]*\.[A-Z_a-z]\w*$")
+
+_QUALNAME_RE = re.compile(r'^[a-zA-Z_][\w\.]*\.[A-Z_a-z]\w*$')
+
 
 def is_valid_qualname(s: str) -> bool:
     """
@@ -108,17 +116,17 @@ def is_valid_qualname(s: str) -> bool:
       - the final part (the type name) must start with a letter or underscore
 
     Examples:
-        >>> is_valid_qualname("torch.Tensor")
+        >>> is_valid_qualname('torch.Tensor')
         True
-        >>> is_valid_qualname("numpy.ndarray")
+        >>> is_valid_qualname('numpy.ndarray')
         True
-        >>> is_valid_qualname("builtins.int")
+        >>> is_valid_qualname('builtins.int')
         True
-        >>> is_valid_qualname("not.valid.")
+        >>> is_valid_qualname('not.valid.')
         False
-        >>> is_valid_qualname("1bad.name")
+        >>> is_valid_qualname('1bad.name')
         False
-        >>> is_valid_qualname("no_dot")
+        >>> is_valid_qualname('no_dot')
         False
     """
     return bool(_QUALNAME_RE.match(s))

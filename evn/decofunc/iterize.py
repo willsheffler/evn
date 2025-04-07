@@ -22,11 +22,16 @@ import functools
 from pathlib import Path
 import evn
 
+
 def NoneFunc():
     """This function does nothing and is used as a default placeholder."""
     pass
 
-def is_iterizeable(arg, basetype: type = str, splitstr: bool = True, allowmap: bool = False) -> bool:
+
+def is_iterizeable(arg,
+                   basetype: type = str,
+                   splitstr: bool = True,
+                   allowmap: bool = False) -> bool:
     """
     Determine if an object should be treated as iterable for vectorization purposes.
 
@@ -45,9 +50,9 @@ def is_iterizeable(arg, basetype: type = str, splitstr: bool = True, allowmap: b
     Examples:
         >>> is_iterizeable([1, 2, 3])
         True
-        >>> is_iterizeable("hello")
+        >>> is_iterizeable('hello')
         False
-        >>> is_iterizeable("hello world")
+        >>> is_iterizeable('hello world')
         True
         >>> is_iterizeable({'a': 1})
         False
@@ -55,15 +60,24 @@ def is_iterizeable(arg, basetype: type = str, splitstr: bool = True, allowmap: b
         True
     """
     if isinstance(basetype, str):
-        if basetype == 'notlist': return isinstance(arg, list)
-        elif arg.__class__.__name__ == basetype: basetype = type(arg)
-        elif arg.__class__.__qualname__ == basetype: basetype = type(arg)
-        else: basetype = type(None)
-    if isinstance(arg, str) and ' ' in arg: return True
-    if basetype and isinstance(arg, basetype): return False
-    if not allowmap and isinstance(arg, evn.Mapping): return False
-    if hasattr(arg, '__iter__'): return True
+        if basetype == 'notlist':
+            return isinstance(arg, list)
+        elif arg.__class__.__name__ == basetype:
+            basetype = type(arg)
+        elif arg.__class__.__qualname__ == basetype:
+            basetype = type(arg)
+        else:
+            basetype = type(None)
+    if isinstance(arg, str) and ' ' in arg:
+        return True
+    if basetype and isinstance(arg, basetype):
+        return False
+    if not allowmap and isinstance(arg, evn.Mapping):
+        return False
+    if hasattr(arg, '__iter__'):
+        return True
     return False
+
 
 def iterize_on_first_param(
     func0: evn.F = NoneFunc,
@@ -118,7 +132,6 @@ def iterize_on_first_param(
         >>> @iterize_on_first_param
         ... def square(x):
         ...     return x * x
-        ...
         >>> square(5)
         25
         >>> square([1, 2, 3])
@@ -129,10 +142,9 @@ def iterize_on_first_param(
         >>> @iterize_on_first_param(basetype=str)
         ... def process(item):
         ...     return len(item)
-        ...
-        >>> process("hello")  # Treated as scalar despite being iterable
+        >>> process('hello')  # Treated as scalar despite being iterable
         5
-        >>> process(["hello", "world"])
+        >>> process(['hello', 'world'])
         [5, 5]
 
         **Using `asdict` to return results as a dictionary**:
@@ -140,7 +152,6 @@ def iterize_on_first_param(
         >>> @iterize_on_first_param(asdict=True)
         ... def double(x):
         ...     return x * 2
-        ...
         >>> double([1, 2, 3])
         {1: 2, 2: 4, 3: 6}
 
@@ -149,8 +160,7 @@ def iterize_on_first_param(
         >>> @iterize_on_first_param(asbunch=True)
         ... def triple(x):
         ...     return x * 3
-        ...
-        >>> result = triple(["a", "b"])
+        >>> result = triple(['a', 'b'])
         >>> result.a
         'aaa'
         >>> result.b
@@ -161,8 +171,7 @@ def iterize_on_first_param(
         >>> @iterize_on_first_param(allowmap=True)
         ... def negate(x):
         ...     return -x
-        ...
-        >>> negate({"a": 1, "b": 2})
+        >>> negate({'a': 1, 'b': 2})
         {'a': -1, 'b': -2}
 
     Notes:
@@ -176,7 +185,10 @@ def iterize_on_first_param(
 
         @functools.wraps(func)
         def wrapper(arg0, *args, **kw):
-            if is_iterizeable(arg0, basetype=basetype, splitstr=splitstr, allowmap=allowmap):
+            if is_iterizeable(arg0,
+                              basetype=basetype,
+                              splitstr=splitstr,
+                              allowmap=allowmap):
                 if splitstr and isinstance(arg0, str) and ' ' in arg0:
                     arg0 = arg0.split()
                 if allowmap and isinstance(arg0, evn.Mapping):
@@ -186,12 +198,17 @@ def iterize_on_first_param(
                 else:
                     result = [func(a0, *args, **kw) for a0 in arg0]
                     with contextlib.suppress(TypeError, ValueError):
-                        resutn = type(arg0)(result)
-                if nonempty and evn.islist(result): result = list(filter(len, result))
-                if nonempty and evn.isdict(result): {k: v for k, v in result.items() if len(v)}
-                if asbunch and result and isinstance(evn.first(result.keys()), str):
+                        result = type(arg0)(result)
+                if nonempty and evn.islist(result):
+                    result = list(filter(len, result))
+                if nonempty and evn.isdict(result):
+                    {k: v for k, v in result.items() if len(v)}
+                if asbunch and result and isinstance(evn.first(result.keys()),
+                                                     str):
                     result = evn.Bunch(result)
-                if asnumpy:
+                if asnumpy and evn.installed.numpy:
+                    import numpy as np
+
                     result = np.array(result)
                 return result
             return func(arg0, *args, **kw)
@@ -203,5 +220,5 @@ def iterize_on_first_param(
         return deco(func0)
     return deco
 
-iterize_on_first_param_path = iterize_on_first_param(basetype=(str, Path))
 
+iterize_on_first_param_path = iterize_on_first_param(basetype=(str, Path))

@@ -27,32 +27,33 @@ debugging, and experimental setups.
 
 ### **Redirect stdout and stderr**
 ```python
-with redirect(stdout=open("output.log", "w")):
-    print("This will be written to output.log")
+with redirect(stdout=open('output.log', 'w')):
+    print('This will be written to output.log')
 ```
 
 ### **Temporarily Change Working Directory**
 ```python
 import os
-print("Current directory:", os.getcwd())
-with cd("/tmp"):
-    print("Inside /tmp:", os.getcwd())
-print("Reverted directory:", os.getcwd())
+
+print('Current directory:', os.getcwd())
+with cd('/tmp'):
+    print('Inside /tmp:', os.getcwd())
+print('Reverted directory:', os.getcwd())
 ```
 
 ### **Capture Standard Output**
 ```python
 with capture_stdio() as captured:
-    print("Captured output")
+    print('Captured output')
 # Use captured.getvalue() to retrieve the captured text.
-print("Captured text:", captured.getvalue())
+print('Captured text:', captured.getvalue())
 ```
 
 ### **Capture Assertion Errors**
 ```python
 with capture_asserts() as errors:
-    assert False, "This assertion error will be captured"
-print("Captured errors:", errors)
+    assert False, 'This assertion error will be captured'
+print('Captured errors:', errors)
 ```
 
 ### **Suppress Optional Imports**
@@ -73,14 +74,17 @@ __the_real_stdout__ = sys.__stdout__
 __the_real_stderr__ = sys.__stderr__
 import evn
 
+
 def onexit(func, msg=None, **metakw):
 
     def wrapper(*args, **kw):
-        if msg is not None: print(msg)
+        if msg is not None:
+            print(msg)
         return func(*args, **(metakw | kw))
 
     atexit.register(wrapper)
     return wrapper
+
 
 @contextlib.contextmanager
 def set_class(cls, self):
@@ -89,6 +93,7 @@ def set_class(cls, self):
         yield self
     finally:
         self.__class__ = orig  # type: ignore
+
 
 @contextlib.contextmanager
 def force_stdio():
@@ -99,12 +104,14 @@ def force_stdio():
         finally:
             pass
 
+
 @contextlib.contextmanager
 def nocontext():
     try:
         yield None
     finally:
         pass
+
 
 class TraceWrites(object):
 
@@ -115,7 +122,9 @@ class TraceWrites(object):
 
     def write(self, s):
         stack = os.linesep.join(traceback.format_stack())
-        stack = evn.filter_python_output(stack, preset=self.preset, arrows=False)
+        stack = evn.filter_python_output(stack,
+                                         preset=self.preset,
+                                         arrows=False)
         self.log.append(f'\nA WRITE TO STDOUT!: "{s}"{os.linesep}')
         self.log.append(stack)
 
@@ -125,11 +134,13 @@ class TraceWrites(object):
     def printlog(self):
         self.stdout.write(os.linesep.join(self.log))
 
+
 @contextlib.contextmanager
 def trace_writes_to_stdout(preset='aggressive'):
     tp = TraceWrites(preset)
     with redirect(stdout=tp, after=lambda: tp.printlog()):
         yield tp
+
 
 @contextlib.contextmanager
 def catch_em_all():
@@ -140,6 +151,7 @@ def catch_em_all():
         errors.append(e)
     finally:
         pass
+
 
 @contextlib.contextmanager
 def redirect(
@@ -171,7 +183,9 @@ def redirect(
     finally:
         sys.stdout.flush(), sys.stderr.flush()
         sys.stdout, sys.stderr = _out, _err
-        if after: after()
+        if after:
+            after()
+
 
 @contextlib.contextmanager
 def cd(path):
@@ -191,12 +205,14 @@ def cd(path):
     finally:
         os.chdir(oldpath)
 
+
 @contextlib.contextmanager
 def just_stdout():
     try:
         yield sys.stdout
     finally:
         pass
+
 
 @contextlib.contextmanager
 def capture_stdio():
@@ -212,6 +228,7 @@ def capture_stdio():
         finally:
             out.seek(0)
             err.seek(0)
+
 
 @contextlib.contextmanager
 def capture_asserts():
@@ -229,6 +246,7 @@ def capture_asserts():
     finally:
         pass
 
+
 def optional_imports():
     """
     Suppress ImportError.
@@ -238,13 +256,17 @@ def optional_imports():
     """
     return contextlib.suppress(ImportError)
 
+
 @contextlib.contextmanager
 def modloaded(pkg):
     try:
-        if pkg in sys.modules: yield sys.modules[pkg]
-        else: yield None
+        if pkg in sys.modules:
+            yield sys.modules[pkg]
+        else:
+            yield None
     finally:
         pass
+
 
 @contextlib.contextmanager
 def cd_project_root():
@@ -260,6 +282,7 @@ def cd_project_root():
     else:
         yield False
 
+
 @contextlib.contextmanager
 def np_printopts(**kw):
     np = evn.maybeimport('numpy')
@@ -272,6 +295,7 @@ def np_printopts(**kw):
         yield None
     finally:
         np.set_printoptions(**{k: npopt[k] for k in kw})
+
 
 def np_compact(precision=4, suppress=True, **kw):
     return np_printopts(precision=precision, suppress=suppress, **kw)

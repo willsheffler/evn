@@ -11,7 +11,8 @@ def has_pytest_mark(obj, mark):
     Example:
     >>> import pytest
     >>> @pytest.mark.ci
-    ... def test_example(): pass
+    ... def test_example():
+    ...     pass
 
     >>> print(has_pytest_mark(test_example, 'ci'))
     True
@@ -19,6 +20,7 @@ def has_pytest_mark(obj, mark):
     False
     """
     return mark in [m.name for m in getattr(obj, 'pytestmark', ())]
+
 
 def no_pytest_skip(obj):
     """Checks if an object does not have the `skip` pytest mark.
@@ -32,11 +34,13 @@ def no_pytest_skip(obj):
     Example:
     >>> import pytest
     >>> @pytest.mark.skip
-    ... def test_example(): pass
+    ... def test_example():
+    ...     pass
     >>> print(no_pytest_skip(test_example))
     False
     """
     return not has_pytest_mark(obj, 'skip')
+
 
 def get_pytest_params(func):
     """

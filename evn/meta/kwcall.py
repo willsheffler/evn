@@ -56,10 +56,13 @@ Example for `kwcheck`:
     {'a': 1, 'b': 2}
 
 Example for `filter_namespace_funcs`:
-    >>> def test_func1(): pass
-    >>> def test_func2(): pass
-    >>> def helper_func(): pass
-    >>> ns = dict(test_func1=test_func1,test_func2=test_func2, helper_func=helper_func)
+    >>> def test_func1():
+    ...     pass
+    >>> def test_func2():
+    ...     pass
+    >>> def helper_func():
+    ...     pass
+    >>> ns = dict(test_func1=test_func1, test_func2=test_func2, helper_func=helper_func)
     >>> filtered_ns = filter_namespace_funcs(ns, prefix='test_', only=('test_func1',))
     >>> print(filtered_ns.keys())
     dict_keys(['helper_func', 'test_func1'])
@@ -72,6 +75,7 @@ See Also:
 - `pytest.mark` – Markers for controlling pytest test execution.
 
 """
+
 import dis
 import re
 import functools
@@ -83,10 +87,13 @@ import evn
 
 T, P, R, F = evn.basic_typevars('TPRF')
 
+
 def instanceof(obj_or_types, types=None):
     """wrapper so isinstane can be called with kwargs"""
-    if types: return isinstance(obj_or_types, types)
+    if types:
+        return isinstance(obj_or_types, types)
     return lambda obj: isinstance(obj, obj_or_types)
+
 
 @evn.iterize_on_first_param(asdict=True)
 def picklocals(name, idx=None):
@@ -113,12 +120,15 @@ def picklocals(name, idx=None):
 
     """
     if sys.version_info.minor < 12:
-        val = inspect.currentframe().f_back.f_back.f_back.f_locals[name]  # type: ignore
+        val = inspect.currentframe().f_back.f_back.f_back.f_locals[
+            name]  # type: ignore
     else:
-        val = inspect.currentframe().f_back.f_back.f_locals[name]  # type: ignore
+        val = inspect.currentframe().f_back.f_back.f_locals[
+            name]  # type: ignore
     if idx is None:
         return val
     return val[idx]
+
 
 def opreduce(op, iterable):
     """Reduces an iterable using a specified operator or function.
@@ -150,9 +160,12 @@ def opreduce(op, iterable):
         op = getattr(operator, op)
     return functools.reduce(op, iterable)
 
+
 for op in 'add mul matmul or_ and_'.split():
     opname = op.strip('_')
-    globals()[f'{opname}reduce'] = functools.partial(opreduce, getattr(operator, op))
+    globals()[f'{opname}reduce'] = functools.partial(opreduce,
+                                                     getattr(operator, op))
+
 
 def kwcall(kw: evn.KW, func: F, *a: P.args, **kwargs: P.kwargs) -> R:
     """Call a function with filtered keyword arguments.
@@ -173,7 +186,6 @@ def kwcall(kw: evn.KW, func: F, *a: P.args, **kwargs: P.kwargs) -> R:
     Examples:
         >>> def example_function(x, y, z=3):
         ...     return x + y + z
-        ...
         >>> args = {'x': 1, 'y': 2, 'extra_arg': 'ignored'}
         >>> kwcall(args, example_function)
         6
@@ -189,6 +201,7 @@ def kwcall(kw: evn.KW, func: F, *a: P.args, **kwargs: P.kwargs) -> R:
         kwcheck: The underlying function used to filter keyword arguments.
     """
     return func(*a, **kwcheck(kw | kwargs, func))
+
 
 def kwcheck(kw: evn.KW, func=None, checktypos=True) -> evn.KW:
     """
@@ -226,7 +239,6 @@ def kwcheck(kw: evn.KW, func=None, checktypos=True) -> evn.KW:
     --------
     >>> def my_function(a, b, c=3):
     ...     pass
-    ...
     >>> kwargs = {'a': 1, 'b': 2, 'd': 4}
     >>> filtered_kwargs = kwcheck(kwargs, my_function)
     >>> filtered_kwargs
@@ -241,18 +253,25 @@ def kwcheck(kw: evn.KW, func=None, checktypos=True) -> evn.KW:
     parameter names, improving developer experience by providing helpful error messages.
     """
     func = func or get_function_for_which_call_to_caller_is_argument()
-    if not callable(func): raise TypeError('Couldn\'t get function for which kwcheck(kw) is an argument')
+    if not callable(func):
+        raise TypeError(
+            "Couldn't get function for which kwcheck(kw) is an argument")
     params = func_params(func)
-    takeskwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values())
-    if takeskwargs: return kw
+    takeskwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD
+                      for param in params.values())
+    if takeskwargs:
+        return kw
     newkw = {k: v for k, v in kw.items() if k in params}
     if checktypos:
         unused = kw.keys() - newkw.keys()
         unset = params - newkw.keys()
         for arg in unused:
             if typo := evn.meta.find_close_argnames(arg, unset, cutoff=0.8):
-                raise TypeError(f'{func.__name__} got unexpected arg {arg}, did you mean {typo}')
+                raise TypeError(
+                    f'{func.__name__} got unexpected arg {arg}, did you mean {typo}'
+                )
     return newkw
+
 
 def get_function_for_which_call_to_caller_is_argument():
     """
@@ -269,18 +288,28 @@ def get_function_for_which_call_to_caller_is_argument():
     detected caller: FIND_THIS_FUNCTION
     """
     frame = inspect.currentframe().f_back.f_back  # grandparent
-    frame_info = inspect.getframeinfo(frame)
+    # frame_info = inspect.getframeinfo(frame)
     code = frame.f_code
     bytecode = dis.Bytecode(code)
     current_offset = frame.f_lasti
     for instr in bytecode:
-        if instr.offset < current_offset and (instr.opname == 'LOAD_GLOBAL' or instr.opname == 'LOAD_NAME'):
+        if instr.offset < current_offset and (instr.opname == 'LOAD_GLOBAL'
+                                              or instr.opname == 'LOAD_NAME'):
             potential_func_name = instr.argval
             if potential_func_name != 'kwcheck' or True:
-                func = frame.f_globals.get(potential_func_name) or frame.f_locals.get(potential_func_name)
-                if func: return func
+                func = frame.f_globals.get(
+                    potential_func_name) or frame.f_locals.get(
+                        potential_func_name)
+                if func:
+                    return func
 
-def filter_namespace_funcs(namespace, prefix='test_', only=(), re_only=(), exclude=(), re_exclude=()):
+
+def filter_namespace_funcs(namespace,
+                           prefix='test_',
+                           only=(),
+                           re_only=(),
+                           exclude=(),
+                           re_exclude=()):
     """Filters functions in a namespace based on specified inclusion and exclusion rules.
 
     This function filters out functions from the given `namespace` based on:
@@ -331,6 +360,7 @@ def filter_namespace_funcs(namespace, prefix='test_', only=(), re_only=(), exclu
                 del namespace[func]
     return namespace
 
+
 def param_is_required(param):
     """Checks if a function parameter is required.
 
@@ -345,7 +375,8 @@ def param_is_required(param):
         bool: True if the parameter is required, False otherwise.
 
     Example:
-    >>> def my_func(x, y=2, *args, **kwargs): pass
+    >>> def my_func(x, y=2, *args, **kwargs):
+    ...     pass
     >>> params = inspect.signature(my_func).parameters
     >>> for name, param in params.items():
     ...     print(name, param_is_required(param))
@@ -355,7 +386,9 @@ def param_is_required(param):
     kwargs False
 
     """
-    return param.default is param.empty and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+    return param.default is param.empty and param.kind not in (
+        param.VAR_POSITIONAL, param.VAR_KEYWORD)
+
 
 @functools.lru_cache
 def func_params(func, required_only=False):
@@ -372,7 +405,8 @@ def func_params(func, required_only=False):
         dict: A dictionary mapping parameter names to `inspect.Parameter` objects.
 
     Example:
-    >>> def my_func(a, b, c=1): pass
+    >>> def my_func(a, b, c=1):
+    ...     pass
     >>> print(func_params(my_func))
     OrderedDict({'a': <Parameter "a">, 'b': <Parameter "b">, 'c': <Parameter "c=1">})
 
@@ -382,8 +416,12 @@ def func_params(func, required_only=False):
     signature = inspect.signature(func)
     params = signature.parameters
     if required_only:
-        params = {k: param for k, param in params.items() if param_is_required(param)}
+        params = {
+            k: param
+            for k, param in params.items() if param_is_required(param)
+        }
     return params
+
 
 def list_classes(data):
     seenit = set()
@@ -394,6 +432,7 @@ def list_classes(data):
     visit(data, visitor)
     return seenit
 
+
 def change_class(data, clsmap) -> None:
 
     def visitor(x):
@@ -401,6 +440,7 @@ def change_class(data, clsmap) -> None:
             x.__class__ = clsmap[x.__class__]
 
     visit(data, visitor)
+
 
 def visit(data, func) -> None:
     if isinstance(data, dict):
@@ -411,4 +451,3 @@ def visit(data, func) -> None:
             visit(x, func)
     else:
         func(data)
-

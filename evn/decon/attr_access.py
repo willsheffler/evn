@@ -30,9 +30,11 @@ Examples:
 from typing import Any, Iterable
 import evn
 
+
 def NoneFunc():
     """This function does nothing and is used as a default placeholder."""
     pass
+
 
 def subscriptable_for_attributes(cls: type[evn.C]) -> type[evn.C]:
     """Class decorator to enable subscriptable attribute access and enumeration.
@@ -74,7 +76,9 @@ def subscriptable_for_attributes(cls: type[evn.C]) -> type[evn.C]:
     cls.pick = make_getitem_for_attributes(provide='item')
     return cls
 
+
 # helper functions
+
 
 def generic_get_keys(obj, exclude: evn.FieldSpec = ()):
     """
@@ -106,9 +110,11 @@ def generic_get_keys(obj, exclude: evn.FieldSpec = ()):
         return list(range(len(obj)))
     else:
         return [
-            k for k in dir(obj) if valid_element_name_thorough(k, exclude) and not callable(getattr(obj, k))
+            k for k in dir(obj) if valid_element_name_thorough(k, exclude)
+            and not callable(getattr(obj, k))
         ]
     raise TypeError(f'dont know how to get elements from {obj}')
+
 
 def generic_get_items(obj, all=False):
     """
@@ -133,13 +139,16 @@ def generic_get_items(obj, all=False):
     if hasattr(obj, 'items'):
         return [(k, v) for k, v in obj.items() if all or valid_element_name(k)]
     elif hasattr(obj, 'keys') and callable(getattr(obj, 'keys')):
-        return [(k, getattr(obj, k)) for k in obj.keys() if all or valid_element_name(k)]
+        return [(k, getattr(obj, k)) for k in obj.keys()
+                if all or valid_element_name(k)]
     elif isinstance(obj, list):
         return list(enumerate(obj))
     else:
         return [(k, getattr(obj, k)) for k in dir(obj)
-                if (all or valid_element_name_thorough(k)) and not callable(getattr(obj, k))]
+                if (all or valid_element_name_thorough(k))
+                and not callable(getattr(obj, k))]
     raise TypeError(f'dont know how to get elements from {obj}')
+
 
 def valid_element_name(name, exclude=()):
     """
@@ -154,12 +163,13 @@ def valid_element_name(name, exclude=()):
     :rtype: bool
 
     Example:
-        >>> valid_element_name("foo")
+        >>> valid_element_name('foo')
         True
-        >>> valid_element_name("_bar")
+        >>> valid_element_name('_bar')
         False
     """
     return not name[0] == '_' and not name[-1] == '_' and name not in exclude
+
 
 def valid_element_name_thorough(name, exclude=()):
     """
@@ -175,14 +185,19 @@ def valid_element_name_thorough(name, exclude=()):
     :rtype: bool
 
     Example:
-        >>> valid_element_name_thorough("mapwise")
+        >>> valid_element_name_thorough('mapwise')
         False
     """
-    return valid_element_name(name, exclude) and name not in _reserved_element_names
+    return valid_element_name(name,
+                              exclude) and name not in _reserved_element_names
+
 
 _reserved_element_names = set('mapwise npwise valwise dictwise'.split())
 
-def get_fields(obj, fields: evn.FieldSpec, exclude: evn.FieldSpec = ()) -> tuple[Iterable, bool]:
+
+def get_fields(
+    obj, fields: evn.FieldSpec,
+    exclude: evn.FieldSpec = ()) -> tuple[Iterable, bool]:
     """
     Determine and return the fields from an object.
 
@@ -207,10 +222,14 @@ def get_fields(obj, fields: evn.FieldSpec, exclude: evn.FieldSpec = ()) -> tuple
         (['a', 'b'], True)
     """
 
-    if callable(fields): fields = fields(obj)
-    if fields is None: return generic_get_keys(obj, exclude=exclude), True
-    if ' ' in fields: return evn.cast(str, fields).split(), True
-    if isinstance(fields, str): return [fields], False
+    if callable(fields):
+        fields = fields(obj)
+    if fields is None:
+        return generic_get_keys(obj, exclude=exclude), True
+    if ' ' in fields:
+        return evn.cast(str, fields).split(), True
+    if isinstance(fields, str):
+        return [fields], False
     return fields, True
 
 
@@ -221,28 +240,31 @@ def make_getitem_for_attributes(get=getattr, provide='value') -> 'Any':
     def getitem_for_attributes(self, fields: evn.FieldSpec, get=get) -> 'Any':
         """Enhanced `__getitem__` method to support attribute access with multiple keys.
 
-    If the field is a string containing spaces, it will be split into a list of keys.
-    If the field is a list of strings, it will return the corresponding attributes as a tuple.
+        If the field is a string containing spaces, it will be split into a list of keys.
+        If the field is a list of strings, it will return the corresponding attributes as a tuple.
 
-    Args:
-        field (list[str] | str): A single attribute name or a list of attribute names.
+        Args:
+            field (list[str] | str): A single attribute name or a list of attribute names.
 
-    Returns:
-        Any: The attribute value(s) corresponding to the field(s).
+        Returns:
+            Any: The attribute value(s) corresponding to the field(s).
 
-    Example:
-        >>> obj = MyClass()
-        >>> value = obj['x']  # Single field
-        >>> values = obj['x y z']  # Multiple keys as a string
-        >>> values = obj[['x', 'y', 'z']]  # Multiple keys as a list
-    """
+        Example:
+            >>> obj = MyClass()
+            >>> value = obj['x']  # Single field
+            >>> values = obj['x y z']  # Multiple keys as a string
+            >>> values = obj[['x', 'y', 'z']]  # Multiple keys as a list
+        """
         # try:
         field, plural = get_fields(self, fields)
         if provide == 'value':
-            if plural: return tuple(get(self, k) for k in field)
-            else: return get(self, field[0])
+            if plural:
+                return tuple(get(self, k) for k in field)
+            else:
+                return get(self, field[0])
         if provide == 'item':
-            if plural: return evn.Bunch((k, get(self, k)) for k in field)
+            if plural:
+                return evn.Bunch((k, get(self, k)) for k in field)
             return (field[0], get(self, field[0]))
 
     # except AttributeError as e:
@@ -255,7 +277,10 @@ def make_getitem_for_attributes(get=getattr, provide='value') -> 'Any':
 
     return getitem_for_attributes
 
-def generic_enumerate(self, fields: evn.FieldSpec = None, order=lambda x: x) -> evn.EnumerIter:
+
+def generic_enumerate(self,
+                      fields: evn.FieldSpec = None,
+                      order=lambda x: x) -> evn.EnumerIter:
     """
     Enhanced enumerate method to iterate over multiple attributes simultaneously.
 
@@ -273,10 +298,11 @@ def generic_enumerate(self, fields: evn.FieldSpec = None, order=lambda x: x) -> 
         ...     def __init__(self):
         ...         self.x = [1, 2]
         ...         self.y = [3, 4]
+        ...
         ...     __getitem__ = make_getitem_for_attributes()
         ...     enumerate = generic_enumerate
         >>> a = A()
-        >>> list(a.enumerate("x y"))
+        >>> list(a.enumerate('x y'))
         [(0, 1, 3), (1, 2, 4)]
         >>> @evn.subscriptable_for_attributes
         ... class MyClass:
@@ -292,7 +318,8 @@ def generic_enumerate(self, fields: evn.FieldSpec = None, order=lambda x: x) -> 
         3 3 8
         4 4 9
     """
-    if fields is None: fields = generic_get_keys(self)
+    if fields is None:
+        fields = generic_get_keys(self)
     vals = self[fields]
     try:
         fields = list(zip(*vals))
@@ -301,6 +328,7 @@ def generic_enumerate(self, fields: evn.FieldSpec = None, order=lambda x: x) -> 
     idx = range(len(fields))
     for i, vals in zip(order(idx), order(fields)):
         yield i, *vals
+
 
 def generic_groupby(
     self,
@@ -325,6 +353,7 @@ def generic_groupby(
         ...     def __init__(self):
         ...         self.a = [1, 2, 3, 4]
         ...         self.group = ['x', 'x', 'y', 'y']
+        ...
         ...     __getitem__ = make_getitem_for_attributes()
         ...     groupby = generic_groupby
         >>> a = A()
@@ -338,7 +367,8 @@ def generic_groupby(
     else:
         groupby, plural = get_fields(self, groupby)
         exclude = groupby
-        if not plural: groupby = groupby[0]
+        if not plural:
+            groupby = groupby[0]
         groupby = self[groupby]
     fields, _ = get_fields(self, fields, exclude=exclude)
     vals = self[fields]
@@ -347,9 +377,13 @@ def generic_groupby(
         groups.setdefault(k, []).append(v)
     for group, vals in groups.items():
         vals = zip(*vals)
-        if convert: vals = map(convert, vals)
-        if splat: yield group, *vals
-        else: yield group, evn.Bunch(zip(fields, vals))
+        if convert:
+            vals = map(convert, vals)
+        if splat:
+            yield group, *vals
+        else:
+            yield group, evn.Bunch(zip(fields, vals))
+
 
 def is_fuzzy_match(sub, string):
     """
@@ -364,17 +398,20 @@ def is_fuzzy_match(sub, string):
     :rtype: bool
 
     Example:
-        >>> is_fuzzy_match("abc", "ab2c3")
+        >>> is_fuzzy_match('abc', 'ab2c3')
         True
-        >>> is_fuzzy_match("acb", "ab2c3")
+        >>> is_fuzzy_match('acb', 'ab2c3')
         False
     """
-    if sub[:2] != string[:2]: return False
+    if sub[:2] != string[:2]:
+        return False
     i, j = 0, 0
     while i < len(sub) and j < len(string):
-        if sub[i] == string[j]: i += 1
+        if sub[i] == string[j]:
+            i += 1
         j += 1
     return i == len(sub)
+
 
 def getattr_fzf(obj, field):
     """
@@ -394,6 +431,7 @@ def getattr_fzf(obj, field):
         ...     def __init__(self):
         ...         self.abc = 1
         ...         self.xyz = 2
+        ...
         ...     fzf = make_getitem_for_attributes(get=getattr_fzf)
         >>> a = A()
         >>> a.fzf('ab')
@@ -401,6 +439,9 @@ def getattr_fzf(obj, field):
     """
     fields = generic_get_keys(obj, exclude=())
     candidates = [f for f in fields if is_fuzzy_match(field, f)]
-    if not candidates: raise AttributeError(f'no attribute found for {field}')
-    if len(candidates) == 1: return getattr(obj, candidates[0])
-    raise AttributeError(f'multiple attributes found for {field}: {candidates}')
+    if not candidates:
+        raise AttributeError(f'no attribute found for {field}')
+    if len(candidates) == 1:
+        return getattr(obj, candidates[0])
+    raise AttributeError(
+        f'multiple attributes found for {field}: {candidates}')

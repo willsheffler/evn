@@ -2,6 +2,7 @@ import copy
 import evn
 from evn.dev.copy import shallow_copy
 
+
 @evn.iterize_on_first_param(basetype='notlist')
 def get_metadata(obj):
     """
@@ -14,6 +15,7 @@ def get_metadata(obj):
         evn.Bunch: The metadata stored in the object, or an empty `evn.Bunch` if no metadata exists.
     """
     return vars(obj).get('__evn_metadata__', evn.Bunch())
+
 
 def set_metadata(obj, data: 'dict|None' = None, **kw):
     """
@@ -39,9 +41,11 @@ def set_metadata(obj, data: 'dict|None' = None, **kw):
         else:
             [set_metadata(o, data) for o in obj]
         return
-    meta = obj.__dict__.setdefault('__evn_metadata__', evn.Bunch(_strict=False, _default=evn.Bunch))
+    meta = obj.__dict__.setdefault(
+        '__evn_metadata__', evn.Bunch(_strict=False, _default=evn.Bunch))
     meta.update(data)
     return obj
+
 
 def sync_metadata(*objs):
     """
@@ -56,6 +60,7 @@ def sync_metadata(*objs):
     for obj in objs:
         set_metadata(obj, data)
     return objs
+
 
 def holds_metadata(cls):
     """
@@ -73,9 +78,15 @@ def holds_metadata(cls):
 
     def newinit(self, *a, **kw):
         initkw = evn.kwcheck(kw, cls.__init_after_ipd_metadata__)
-        metadata = {k: v for k, v in kw.items() if k not in initkw and k[0] == '_'}
+        metadata = {
+            k: v
+            for k, v in kw.items() if k not in initkw and k[0] == '_'
+        }
         extra = {k for k in kw if k not in initkw and k not in metadata}
-        if extra: raise TypeError(f"__init__() got an unexpected keyword argument(s): {', '.join(extra)}")
+        if extra:
+            raise TypeError(
+                f"__init__() got an unexpected keyword argument(s): {', '.join(extra)}"
+            )
         metadata = {k[1:]: v for k, v in metadata.items()}
 
         self.set_metadata(metadata)
@@ -94,7 +105,9 @@ def holds_metadata(cls):
     cls.__copy_after_ipd_metadata__ = getattr(cls, '__copy__', None)
     cls.__copy__ = newcopy
 
-    assert not any(hasattr(cls, name) for name in 'set_metadata get_metadata sync_metadata meta'.split())
+    assert not any(
+        hasattr(cls, name)
+        for name in 'set_metadata get_metadata sync_metadata meta'.split())
     cls.set_metadata = set_metadata
     cls.get_metadata = get_metadata
     cls.sync_metadata = sync_metadata

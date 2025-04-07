@@ -34,6 +34,7 @@ _file_mappings = {
 # postprocess command
 _post = defaultdict(lambda: '')
 
+
 def get_args(sysargv):
     """get command line arguments"""
     parser = argparse.ArgumentParser()
@@ -45,14 +46,18 @@ def get_args(sysargv):
     args = parser.parse_args(sysargv[1:])
     return args.__dict__
 
+
 def file_has_main(fname):
-    'check if file has a main block'
-    if not os.path.exists(fname): return False
+    "check if file has a main block"
+    if not os.path.exists(fname):
+        return False
     with open(fname) as inp:
         for line in inp:
-            if line.startswith('if __name__ == ') and not line.strip().endswith('{# in template #}'):
+            if line.startswith('if __name__ == ') and not line.strip(
+            ).endswith('{# in template #}'):
                 return True
     return False
+
 
 def test():
     tfile = testfile_of(['foo'], '/a/b/c/d/foo/e/f/g', 'h.py', debug=True)
@@ -61,16 +66,28 @@ def test():
     tfile = testfile_of(['foo'], 'a/b/c/d/foo/e/f/g', 'h.py', debug=True)
     assert_that(tfile).is_equal_to('a/b/c/d/foo/tests/e/f/g/test_h.py')
 
-    tfile = testfile_of(['foo', 'bar', 'baz'], '/a/foo/b/bar/c/baz/d', 'file.py', debug=True)
+    tfile = testfile_of(['foo', 'bar', 'baz'],
+                        '/a/foo/b/bar/c/baz/d',
+                        'file.py',
+                        debug=True)
     assert_that(tfile).is_equal_to('/a/foo/b/bar/c/baz/tests/d/test_file.py')
 
-    tfile = testfile_of(['foo', 'bar', 'baz'], 'a/foo/b/bar/c', 'file.py', debug=True)
+    tfile = testfile_of(['foo', 'bar', 'baz'],
+                        'a/foo/b/bar/c',
+                        'file.py',
+                        debug=True)
     assert_that(tfile).is_equal_to('a/foo/b/bar/tests/c/test_file.py')
 
-    tfile = testfile_of(['foo', 'bar', 'baz'], 'a/foo/b', 'file.py', debug=True)
+    tfile = testfile_of(['foo', 'bar', 'baz'],
+                        'a/foo/b',
+                        'file.py',
+                        debug=True)
     assert_that(tfile).is_equal_to('a/foo/tests/b/test_file.py')
 
-    tfile = testfile_of(['foo', 'bar', 'baz'], 'foo/foo', 'file.py', debug=True)
+    tfile = testfile_of(['foo', 'bar', 'baz'],
+                        'foo/foo',
+                        'file.py',
+                        debug=True)
     assert_that(tfile).is_equal_to('foo/foo/tests/test_file.py')
 
     tfile = testfile_of(['foo', 'bar', 'baz'], 'a/b/c', 'file.py', debug=True)
@@ -81,15 +98,18 @@ def test():
 
     print(__file__, 'tests pass')
 
+
 def rindex(lst, val):
     try:
         return len(lst) - lst[-1::-1].index(val) - 1
     except ValueError:
         return -1
 
+
 def testfile_of(projects, path, bname, debug=False, **kw) -> str:
-    'find testfile for a given file'
-    if bname.startswith('_'): return None  # type: ignore
+    "find testfile for a given file"
+    if bname.startswith('_'):
+        return None  # type: ignore
     root = '/' if path and path[0] == '/' else ''
     spath = path.split('/')
     i = max(rindex(spath, proj) for proj in projects)
@@ -97,7 +117,7 @@ def testfile_of(projects, path, bname, debug=False, **kw) -> str:
     if i < 0:
         pre, post = '', f'{path}/'
     else:
-        proj = spath[i]
+        # proj = spath[i]
         # print(spath[:i + 1], spath[i + 1:])
         pre, post = spath[:i + 1], spath[i + 1:]
         pre = f'{os.path.join(*pre)}/' if pre else ''
@@ -106,6 +126,7 @@ def testfile_of(projects, path, bname, debug=False, **kw) -> str:
     t = f'{root}{pre}tests/{post}test_{bname}'
     return t
 
+
 # def locate_fname(fname):
 #     'locate file in sys.path'
 #     if os.path.exists(fname): return fname
@@ -113,6 +134,7 @@ def testfile_of(projects, path, bname, debug=False, **kw) -> str:
 #     if len(candidates) == 1: return candidates[0]
 #     if len(candidates) == 0: raise FileNotFoundError(f'file {fname} not found in git project')
 #     raise FileNotFoundError(f'file {fname} found ambiguous {candidates} in git project')
+
 
 def dispatch(
         projects,
@@ -125,7 +147,7 @@ def dispatch(
         python=None,
         **kw,
 ):
-    'dispatch command for a given file. see above'
+    "dispatch command for a given file. see above"
     # fname = locate_fname(fname)
     fname = os.path.relpath(fname)
     module_fname = '' if fname[:5] == 'test_' else fname
@@ -145,7 +167,9 @@ def dispatch(
         if testfile := testfile_of(projects, path, bname, **kw):
             if not os.path.exists(testfile) and fname.endswith('.py'):
                 print('autogen test file', testfile)
-                os.system(f'{sys.executable} -mevn create testfile {fname} {testfile}')
+                os.system(
+                    f'{sys.executable} -mevn create testfile {fname} {testfile}'
+                )
                 os.system(f'subl {testfile}')
                 sys.exit()
             fname = testfile
@@ -160,7 +184,8 @@ def dispatch(
     if fname.endswith('.rst'):
         cmd = f'{pypath} {python} -m doctest {module_fname}'
     elif pytest or (not file_has_main(fname) and bname.startswith('test_')):
-        if module_fname == fname: fname = ''
+        if module_fname == fname:
+            fname = ''
         cmd = f'{pypath} {python} -m pytest {pytest_args} {module_fname} {fname}'
     elif fname.endswith('.py') and bname != 'conftest.py':
         cmd = f'{pypath} {python} ' + fname
@@ -168,10 +193,11 @@ def dispatch(
         cmd = f'{pypath} {python} -mpytest {pytest_args}'
     return cmd, _post[bname]
 
+
 def main(projects, quiet=False, filter_build_log=False, **kw):
     t = perf_counter()
-    cmd, post = dispatch(projects, kw['testfile'], **kw) if kw['testfile'] else (f'{sys.executable} -mpytest',
-                                                                                 '')
+    cmd, post = (dispatch(projects, kw['testfile'], **kw)
+                 if kw['testfile'] else (f'{sys.executable} -mpytest', ''))
     if not quiet:
         print('call:', sys.argv)
         print('cwd:', os.getcwd())
@@ -186,6 +212,7 @@ def main(projects, quiet=False, filter_build_log=False, **kw):
         assert p.exists()
 
     print(f'{f" run_tests_on_file.py done, time {t:7.3f} ":=^69}')
+
 
 if __name__ == '__main__':
     args = get_args(sys.argv)

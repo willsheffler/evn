@@ -23,11 +23,13 @@ from typing import Type, List, Dict
 import click
 import evn
 
+
 class CliRegistry:
     """
     Global registry to track all CLI classes that use CliMeta.
     Used for diagnostics, testing, and reset functionality.
     """
+
     _cli_classes: List[Type] = []
 
     @classmethod
@@ -35,7 +37,8 @@ class CliRegistry:
         if cli_class not in cls._cli_classes:
             cls._cli_classes.append(cli_class)
         else:
-            raise ValueError(f"CLI class {cli_class.__name__} is already registered.")
+            raise ValueError(
+                f'CLI class {cli_class.__name__} is already registered.')
 
     @classmethod
     def all_cli_classes(cls) -> List[Type]:
@@ -45,27 +48,29 @@ class CliRegistry:
     def get_root_commands(cls) -> Dict[str, click.Group]:
         roots = {
             c.__group__.name: c.__group__
-            for c in cls._cli_classes if getattr(c, "__parent__") == evn.CLI
+            for c in cls._cli_classes if getattr(c, '__parent__') == evn.CLI
         }
         return roots
 
     @classmethod
     def reset(cls) -> None:
         for c in cls._cli_classes:
-            if hasattr(c, "_instance"):
+            if hasattr(c, '_instance'):
                 del c._instance
-            if hasattr(c, "__log__"):
+            if hasattr(c, '__log__'):
                 c.__log__.clear()
 
     @classmethod
     def print_summary(cls) -> None:
-        print("\n📦 CLI Registry Summary:")
+        print('\n📦 CLI Registry Summary:')
         for c in cls._cli_classes:
-            print(f"- {c.__name__}")
-            if hasattr(c, "__group__"):
-                print(f"  └── group: {c.__group__.name}")
-            if hasattr(c, "__parent__") and c.__parent__:
-                print(f"  └── parent: {c.__parent__.__name__}")
-            if hasattr(c, "__type_handlers__"):
-                print(f"  └── handlers: {[h.__class__.__name__ for h in c.__type_handlers__]}")
+            print(f'- {c.__name__}')
+            if hasattr(c, '__group__'):
+                print(f'  └── group: {c.__group__.name}')
+            if hasattr(c, '__parent__') and c.__parent__:
+                print(f'  └── parent: {c.__parent__.__name__}')
+            if hasattr(c, '__type_handlers__'):
+                print(
+                    f'  └── handlers: {[h.__class__.__name__ for h in c.__type_handlers__]}'
+                )
             print()

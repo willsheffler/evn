@@ -1,5 +1,6 @@
 import copy
 
+
 def shallow_copy(obj):
     origcopy = getattr(obj.__class__, '__copy__', None)
     try:

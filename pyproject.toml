@@ -35,9 +35,9 @@ evn = 'evn.tool.__main__:main'
 
 [tool.pytest.ini_options]
 minversion = '8'
-addopts = ''
+addopts = '--doctest-modules'
 pythonpath = ['.']
-testpaths = ['evn/tests']
+testpaths = ['evn']
 markers = [
     'slow: marks tests as slow to run',
     'ci: tests that should only run in ci',
@@ -45,23 +45,26 @@ markers = [
 
 
 [tool.ruff]
+include = ['evn']
+exclude = ["dodo.py", 'noxfile.py']
 lint.ignore = [
    'E731', #  [ ] Do not assign a `lambda` expression, use a `def`
    'E402', #  [ ] Module level import not at top of file
-   'E741', #  [ ] Ambiguous variable name: `I`
    'E701', #  [ ] Multiple statements on one line (colon)
-   'F403', #  [ ] `from Attention_module import *` used; unable to detect undefined names
-   'F405',
-   'F821',
-   'F841',
-
+   # 'F403', #  [ ] `from Attention_module import *` used; unable to detect undefined names
+   # 'F405',
+   # 'F821',
+   # 'F841',
 ]
 lint.dummy-variable-rgx = '^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|ic)$'
 line-length = 113
-target-version = 'py313'
+target-version = 'py312'
 format.quote-style = 'single'
 format.indent-style = 'space'
 format.docstring-code-format = true
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403", "F401"]
+"**/test_*.py" = ["E501", "F841", "F403", 'F401', "F405", "F821", "F841", "F811"]
 
 [tool.pyright]
 venvPath = '/home/sheffler/sw/MambaForge/envs'
@@ -75,4 +78,4 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 reportUnusedExpression = false
 pythonPlatform = 'Linux'
-pythonVersion = 3.13
+pythonVersion = '3.13'

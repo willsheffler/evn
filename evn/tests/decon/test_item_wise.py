@@ -3,12 +3,13 @@ import operator
 import unittest
 import pytest
 import evn
-np = evn.lazyimport('numpy')
 
+np = evn.lazyimport('numpy')
 
 config_test = evn.Bunch(
     # re_only=['test_generic_get_items'],
     re_exclude=[], )
+
 
 def main():
     evn.tests.maintest(
@@ -18,6 +19,7 @@ def main():
         check_xfail=False,
         use_test_classes=True,
     )
+
 
 def test_generic_get_items():
     foo = dict(a=1, b_=3)
@@ -39,9 +41,11 @@ def test_generic_get_items():
     bar = Bar()
     assert evn.decon.generic_get_items(bar) == [('a', 1)]
 
+
 @evn.item_wise_operations
 class EwiseDict(dict):
     pass
+
 
 def test_item_wise_no_args():
 
@@ -49,10 +53,12 @@ def test_item_wise_no_args():
     class EwiseDictonly(dict):
         pass
 
-    if evn.installed.numpy: assert 'npwise' in dir(EwiseDictonly)
+    if evn.installed.numpy:
+        assert 'npwise' in dir(EwiseDictonly)
     assert 'dictwise' not in dir(EwiseDictonly)
     assert 'mapwise' in dir(EwiseDictonly)
     assert 'valwise' in dir(EwiseDictonly)
+
 
 def test_item_wise_resulttypes():
     with pytest.raises((TypeError, KeyError)):
@@ -65,7 +71,8 @@ def test_item_wise_resulttypes():
     class EwiseDictonly(dict):
         pass
 
-    if evn.installed.numpy: assert 'npwise' in dir(EwiseDictonly)
+    if evn.installed.numpy:
+        assert 'npwise' in dir(EwiseDictonly)
     assert 'dictwise' in dir(EwiseDictonly)
     assert 'mapwise' not in dir(EwiseDictonly)
     assert 'valwise' not in dir(EwiseDictonly)
@@ -75,6 +82,7 @@ def test_item_wise_resulttypes():
     assert not hasattr(instance, 'mapwise')
     assert not hasattr(instance, 'valwise')
 
+
 def test_item_wise():
     b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
     assert all(b.valwise == [])
@@ -82,11 +90,14 @@ def test_item_wise():
     assert all(b.valwise == [1])
     assert b['a'] == [1]
 
+
 def test_item_wise_accum():
     b = EwiseDict(zip('abcdefg', range(7)))
     assert isinstance(b.mapwise + 10, evn.Bunch)
     assert isinstance(b.valwise + 10, list)
-    if evn.installed.numpy: assert isinstance(b.npwise + 10, np.ndarray)
+    if evn.installed.numpy:
+        assert isinstance(b.npwise + 10, np.ndarray)
+
 
 def test_item_wise_multi():
     b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
@@ -96,6 +107,7 @@ def test_item_wise_multi():
     b.mapwise.append(*range(7))
     assert list(b.values()) == [[i] for i in range(7)]
 
+
 def test_item_wise_equal():
     b = EwiseDict(zip('abcdefg', ([] for _ in range(7))))
     assert b.mapwise == []
@@ -103,6 +115,7 @@ def test_item_wise_equal():
     eq4 = b.mapwise == [4]
     assert list(eq4.values()) == [0, 0, 0, 0, 1, 0, 0]
     assert not any((b.mapwise == 3).values())
+
 
 def test_item_wise_add():
     b = EwiseDict(zip('abcdefg', range(7)))
@@ -116,6 +129,7 @@ def test_item_wise_add():
         e = 4 - b.npwise
         assert np.all(d == -e)
 
+
 def test_item_wise_contains():
     b = EwiseDict(zip('abcdefg', [[i] for i in range(7)]))
     with pytest.raises(ValueError):
@@ -123,10 +137,12 @@ def test_item_wise_contains():
     contains = b.valwise.contains(4)
     assert contains == [0, 0, 0, 0, 1, 0, 0]
 
+
 def test_item_wise_contained_by():
     b = EwiseDict(zip('abcdefg', range(7)))
     contained = b.valwise.contained_by([1, 2, 3])
     assert contained == [0, 1, 1, 1, 0, 0, 0]
+
 
 def test_item_wise_indexing():
     if evn.installed.numpy:
@@ -135,12 +151,14 @@ def test_item_wise_indexing():
         indexed = b.npwise[1]
         assert np.all(indexed == dat[:, 1])
 
+
 def test_item_wise_slicing():
     if evn.installed.numpy:
         dat = np.arange(7 * 4).reshape(7, 4)
         b = EwiseDict(zip('abcdefg', dat))
         indexed = b.npwise[1:3]
         assert np.all(indexed == dat[:, 1:3])
+
 
 def test_item_wise_call_operator():
     if evn.installed.numpy:
@@ -149,6 +167,7 @@ def test_item_wise_call_operator():
         c = b.mapwise(lambda x: list(map(int, x)))
         d = c.mapwise(np.array, dtype=float)
         assert np.all(b.npwise == d)
+
 
 @evn.item_wise_operations
 @evn.mutablestruct
@@ -159,12 +178,14 @@ class Foo:
     def c(self):
         pass
 
+
 def test_item_wise_attrs():
     foo = Foo(a=[], b=[])
     foo.mapwise.append(5, 7)
     assert foo.a == [5], foo.b == [7]
     with pytest.raises(ValueError):
         foo.mapwise.append(1, 2, 3, 4)
+
 
 @evn.item_wise_operations
 @evn.struct
@@ -175,6 +196,7 @@ class Bar:
     def c(self):
         pass
 
+
 @pytest.mark.skip
 def test_item_wise_slots():
     foo = Bar(a=[], b=[])
@@ -183,6 +205,7 @@ def test_item_wise_slots():
     with pytest.raises(ValueError):
         foo.mapwise.append(1, 2, 3, 4)
 
+
 def test_item_wise_kw_call():
     x = Foo([], [])
     x.mapwise.append(dict(b=2, a=1))
@@ -190,7 +213,9 @@ def test_item_wise_kw_call():
     # x.mapwise.append(a=1, b=2)
     assert x.a == [1, 1] and x.b == [2, 2]
 
+
 ############################ ai gen tests ######################
+
 
 class TestElementWiseOperations(unittest.TestCase):
     """Test cases for item_wise_operations decorator and related functionality."""
@@ -201,18 +226,27 @@ class TestElementWiseOperations(unittest.TestCase):
             'a': 1,
             'b': 2,
             'c': 3,
-            '_hidden': 4  # should be skipped in element-wise operations
+            '_hidden': 4,  # should be skipped in element-wise operations
         })
 
         # For testing container operations
-        self.test_container_dict = EwiseDict({'a': [1, 2, 3], 'b': [2, 3, 4], 'c': [3, 4, 5]})
+        self.test_container_dict = EwiseDict({
+            'a': [1, 2, 3],
+            'b': [2, 3, 4],
+            'c': [3, 4, 5]
+        })
         # For testing with objects
 
         @evn.item_wise_operations
         class Metrics(dict):
             pass
 
-        self.metrics = Metrics({'accuracy': 0.95, 'precision': 0.87, 'recall': 0.92, 'f1': 0.89})
+        self.metrics = Metrics({
+            'accuracy': 0.95,
+            'precision': 0.87,
+            'recall': 0.92,
+            'f1': 0.89
+        })
 
     def test_item_wise_basic(self):
         """Test basic mapwise operations."""
@@ -310,8 +344,10 @@ class TestElementWiseOperations(unittest.TestCase):
         container = [1, 2, 3, 4]
         testmap = EwiseDict(a=1, b=3, c=7)
         result = testmap.mapwise.contained_by(container)
-        self.assertEqual(result.a, True)  # all elements in [1,2,3] are in container
-        self.assertEqual(result.b, True)  # all elements in [2,3,4] are in container
+        self.assertEqual(result.a,
+                         True)  # all elements in [1,2,3] are in container
+        self.assertEqual(result.b,
+                         True)  # all elements in [2,3,4] are in container
         self.assertEqual(result.c, False)  # 5 is not in container
 
         # Test direct __contains__ (should raise error)
@@ -320,7 +356,11 @@ class TestElementWiseOperations(unittest.TestCase):
 
     def test_method_calls(self):
         """Test calling methods on elements."""
-        dict_of_lists = EwiseDict({'a': [1, 2, 3], 'b': [4, 5], 'c': [6, 7, 8, 9]})
+        dict_of_lists = EwiseDict({
+            'a': [1, 2, 3],
+            'b': [4, 5],
+            'c': [6, 7, 8, 9]
+        })
 
         # Call len() on each element
         result = dict_of_lists.mapwise.__getattr__('__len__')()
@@ -381,7 +421,7 @@ class TestElementWiseOperations(unittest.TestCase):
             'exp3': {
                 'accuracy': 0.78,
                 'runtime': 90
-            }
+            },
         })
 
         # Extract a specific metric across all experiments
@@ -399,6 +439,7 @@ class TestElementWiseOperations(unittest.TestCase):
         accuracies_dict = results.mapwise.__getattr__(get_accuracy)()
         best_exp = max(accuracies_dict.items(), key=lambda x: x[1])[0]
         self.assertEqual(best_exp, 'exp2')
+
 
 if __name__ == '__main__':
     main()

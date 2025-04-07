@@ -10,6 +10,7 @@ import enum
 import pprint
 import evn.tree
 
+
 class Format(str, enum.Enum):
     TREE = 'tree'
     FOREST = 'forest'
@@ -20,10 +21,11 @@ class Format(str, enum.Enum):
     YAML = 'yaml'
     RICH = 'rich'
 
+
 @evn.dispatch(dict)
 def show_impl(dict_, format='forest', **kw):
     dict_ = evn.tree.sanitize(dict_)
-    if not any(isinstance(d, (dict,list)) for d in dict_):
+    if not any(isinstance(d, (dict, list)) for d in dict_):
         pprint.pprint(dict_)
         return
     try:
@@ -43,33 +45,42 @@ def show_impl(dict_, format='forest', **kw):
         evn.tree.print_tree(dict_, **kw)
     elif fmt is Format.JSON:
         import json
+
         print(json.dumps(dict_, indent=2))
     elif fmt is Format.YAML:
         import yaml
+
         print(yaml.dump(evn.unbunchify(dict_)))
     elif fmt is Format.RICH:
         import rich
+
         tree = evn.tree.rich_tree(dict_, **kw)
         rich.print(tree)
 
-class DiffMode(str, Enum):
-    COMPACT = 'compact',
-    SYMMETRIC = 'symmetric',
-    EXPLICIT = 'explicit',
 
-def treediff(tree1: dict[str, t.Any], tree2: dict[str, t.Any], mode=DiffMode.SYMMETRIC):
+class DiffMode(str, Enum):
+    COMPACT = ('compact', )
+    SYMMETRIC = ('symmetric', )
+    EXPLICIT = ('explicit', )
+
+
+def treediff(tree1: dict[str, t.Any],
+             tree2: dict[str, t.Any],
+             mode=DiffMode.SYMMETRIC):
     """
     Walks two trees in parallel, applying a function to each pair of nodes.
     """
-    result = diff(tree1, tree2, syntax=mode)
+    result = evn.diff(tree1, tree2, syntax=mode)
 
     return result
+
 
 def str_replace_multiple(text, replacements):
     translation_table = str.maketrans(replacements)
     return text.translate(translation_table)
 
-def rich_tree(data, name="root", compact=True, style="bold green", **kw):
+
+def rich_tree(data, name='root', compact=True, style='bold green', **kw):
     """
     Create and display a Rich Tree from a nested dictionary.
 
@@ -87,6 +98,7 @@ def rich_tree(data, name="root", compact=True, style="bold green", **kw):
     from rich.console import Console
     from rich.tree import Tree as RichTree
     from rich.text import Text
+
     console = Console()
     tree = RichTree(Text(name, style=style))
 
@@ -108,7 +120,8 @@ def rich_tree(data, name="root", compact=True, style="bold green", **kw):
                     break
 
             if path:
-                collapsed = ".".join(path + [keys[i]]) if i < len(keys) else ".".join(path)
+                collapsed = '.'.join(path + [keys[i]]) if i < len(
+                    keys) else '.'.join(path)
                 child_obj = obj[keys[i]] if i < len(keys) else obj
                 new_node = rich_node.add(Text(collapsed, style=style))
                 add_node(new_node, child_obj)
@@ -118,11 +131,12 @@ def rich_tree(data, name="root", compact=True, style="bold green", **kw):
                 for k in keys:
                     add_node(rich_node, obj[k], path=[k])
         else:
-            label = ".".join(path) + f": {obj}" if path else str(obj)
+            label = '.'.join(path) + f': {obj}' if path else str(obj)
             rich_node.add(Text(label, style=style))
 
     add_node(tree, data)
     console.print(tree)
+
 
 def print_spider_tree(
     input: dict,
@@ -134,13 +148,21 @@ def print_spider_tree(
     **kw,
 ):
     from PrettyPrint import PrettyPrintTree
-    if not input: return
+
+    if not input:
+        return
     pt = PrettyPrintTree()
-    if orient.startswith('vert'): orient = PrettyPrintTree.Vertical
-    elif orient.startswith('hori'): orient = PrettyPrintTree.Horizontal
-    else: raise ValueError(f"Unknown orientation {orient}")
+    if orient.startswith('vert'):
+        orient = PrettyPrintTree.Vertical
+    elif orient.startswith('hori'):
+        orient = PrettyPrintTree.Horizontal
+    else:
+        raise ValueError(f'Unknown orientation {orient}')
     if orient == PrettyPrintTree.Horizontal:
-        pt.print_json(input, name=f'{name} at {id(input)}', color='', orientation=orient)
+        pt.print_json(input,
+                      name=f'{name} at {id(input)}',
+                      color='',
+                      orientation=orient)
         return
 
     trees = []
@@ -149,11 +171,17 @@ def print_spider_tree(
         head += list(tail.keys())
         tail = tail[head[-1]]
         if not isinstance(tail, dict):
-            pt.print_json(input, name=f'{name} at {id(input)}', color='', orientation=orient)
+            pt.print_json(input,
+                          name=f'{name} at {id(input)}',
+                          color='',
+                          orientation=orient)
             return
     keysleft = list(tail.keys())
     assert len(keysleft) > 1
-    kw = dict(name=f'{name} at {id(input)}', color='', orientation=orient, return_instead_of_print=True) | kw
+    kw = dict(name=f'{name} at {id(input)}',
+              color='',
+              orientation=orient,
+              return_instead_of_print=True) | kw
     while keysleft:
         last = None
         for i in range(1, len(keysleft)):
@@ -176,30 +204,34 @@ def print_spider_tree(
                 break
     if mirror and len(trees) > 1:
         flip_top = {
-            "┌": "└",
-            "┐": "┘",
-            "└": "┌",
-            "┘": "┐",
-            "┴": "┬",
-            "┬": "┴",
+            '┌': '└',
+            '┐': '┘',
+            '└': '┌',
+            '┘': '┐',
+            '┴': '┬',
+            '┬': '┴',
         }
         bar = '|'.center(width)
         for i in range(0, len(trees), 2):
             trees[i] = str_replace_multiple(trees[i], flip_top)
             top = list(reversed(trees[i].splitlines()))[:-1]
             bottom = trees[i + 1].splitlines()
-            if head: root = bottom[0].strip().center(width)
-            else: root = os.linesep.join([bar, bottom[0].strip().center(width), bar])
+            if head:
+                root = bottom[0].strip().center(width)
+            else:
+                root = os.linesep.join(
+                    [bar, bottom[0].strip().center(width), bar])
             bottom = bottom[1:]
             for k in head:
                 top = top[:-2]
                 bottom = bottom[2:]
                 k = k.center(width)
                 root = os.linesep.join([bar, k, root, k, bar])
-            top[-1] = top[-1].replace("┬", "─")
-            top[-1] = top[-1][:width//2 - 1] + "┬" + top[-1][width // 2:]
-            bottom[0] = bottom[0].replace("┴", "─")
-            bottom[0] = bottom[0][:width//2 - 1] + "┴" + bottom[0][width // 2:]
+            top[-1] = top[-1].replace('┬', '─')
+            top[-1] = top[-1][:width // 2 - 1] + '┬' + top[-1][width // 2:]
+            bottom[0] = bottom[0].replace('┴', '─')
+            bottom[0] = bottom[0][:width // 2 - 1] + '┴' + bottom[0][width //
+                                                                     2:]
             print(os.linesep.join(top + [root] + bottom))
         if len(trees) % 2:
             print('continued below>')
@@ -210,7 +242,13 @@ def print_spider_tree(
             print('<continued below>')
         print(trees[-1], flush=True)
 
-def print_tree(d, name='root', compact=True, max_width=None, style="unicode", **kw):
+
+def print_tree(d,
+               name='root',
+               compact=True,
+               max_width=None,
+               style='unicode',
+               **kw):
     """
     Print a nested dictionary starting at the first branching point.
     Each key under that point is rendered as a tree block in columns.
@@ -227,8 +265,9 @@ def print_tree(d, name='root', compact=True, max_width=None, style="unicode", **
         Use 'unicode' or 'ascii' line characters.
     """
     width = max_width or shutil.get_terminal_size((80, 20)).columns
-    prefix_path, blocks = build_tree_blocks_from_branching_aligned(d, compact=compact, style=style)
-    label = ".".join(prefix_path) if prefix_path else name
+    prefix_path, blocks = build_tree_blocks_from_branching_aligned(
+        d, compact=compact, style=style)
+    label = '.'.join(prefix_path) if prefix_path else name
     lines, colwidth = _columnize_blocks(blocks, width)
     if len(lines) == 1:
         print(lines[0])
@@ -237,28 +276,36 @@ def print_tree(d, name='root', compact=True, max_width=None, style="unicode", **
     for i, w in enumerate(colwidth[:-1]):
         wtot += w
         s = wtot - len(header)
-        if s > 0: header += '─'*s + ('┐' if i + 2 == len(colwidth) else '┬')
+        if s > 0:
+            header += '─' * s + ('┐' if i + 2 == len(colwidth) else '┬')
 
     print(header)
     for line in lines:
         print(line)
 
+
 def find_first_branching_path(d, path=None):
-    if path is None: path = []
-    if len(d) != 1: return path
+    if path is None:
+        path = []
+    if len(d) != 1:
+        return path
     key = evn.first(d)
-    if not isinstance(d[key], dict): return []
+    if not isinstance(d[key], dict):
+        return []
     return find_first_branching_path(d[key], path + [key])
+
 
 def descend_to_path(d, path):
     for key in path:
         d = d[key]
     return d
 
+
 def collect_blocks_at_branching_point(d):
     branching_path = find_first_branching_path(d)
     subdict = descend_to_path(d, branching_path)
     return branching_path, subdict
+
 
 def _collapse_path(d, path):
     while isinstance(d, dict) and len(d) == 1:
@@ -267,49 +314,52 @@ def _collapse_path(d, path):
         d = v
     return d
 
-def build_tree_blocks_from_branching_aligned(d, compact=True, style="unicode"):
+
+def build_tree_blocks_from_branching_aligned(d, compact=True, style='unicode'):
     BOX = {
-        "tee": "├─ " if style == "unicode" else "|-- ",
-        "corner": "└─ " if style == "unicode" else "`-- ",
-        "vert": "│   " if style == "unicode" else "|   ",
-        "space": "    "
+        'tee': '├─ ' if style == 'unicode' else '|-- ',
+        'corner': '└─ ' if style == 'unicode' else '`-- ',
+        'vert': '│   ' if style == 'unicode' else '|   ',
+        'space': '    ',
     }
 
     def recurse(node, prefix, key, islast):
-        connector = BOX["corner"] if islast else BOX["tee"]
-        branch = prefix + connector if prefix else ""
+        connector = BOX['corner'] if islast else BOX['tee']
+        branch = prefix + connector if prefix else ''
         lines = []
 
         path = [key]
         value = _collapse_path(node, path) if compact else node
-        path_str = ".".join(path)
+        path_str = '.'.join(path)
 
         if isinstance(value, dict):
             lines.append((branch + path_str, None))
             children = list(value.items())
             for i, (k, v) in enumerate(children):
-                child_lines = recurse(v, prefix + (BOX["space" if islast else "vert"]), k,
-                                      i == len(children) - 1)
+                child_lines = recurse(
+                    v, prefix + (BOX['space' if islast else 'vert']), k,
+                    i == len(children) - 1)
                 lines.extend(child_lines)
         else:
             lines.append((branch + path_str, str(value)))
         return lines
 
     path, subdict = collect_blocks_at_branching_point(d)
-    keys = list(subdict.keys())
+    # keys = list(subdict.keys())
     blocks = []
 
     def padkey(k):
-        if len(k) > 4: return k
-        k = k.ljust(4, '─') + "┐"
+        if len(k) > 4:
+            return k
+        k = k.ljust(4, '─') + '┐'
         return k
 
     for i, (k, v) in enumerate(subdict.items()):
         islast = False  # (i == len(keys) - 1)
-        raw_lines = recurse(v, "", k, islast)
-        key_width = max(len(key) for key, val in raw_lines)
+        raw_lines = recurse(v, '', k, islast)
+        # key_width = max(len(key) for key, val in raw_lines)
         aligned = [
-            f"{key}: {val}" if val is not None else padkey(key)
+            f'{key}: {val}' if val is not None else padkey(key)
             # f"{key.ljust(key_width)}: {val}" if val is not None else key
             for key, val in raw_lines
         ]
@@ -317,9 +367,11 @@ def build_tree_blocks_from_branching_aligned(d, compact=True, style="unicode"):
 
     return path, blocks
 
+
 def _columnize_blocks(blocks, max_width, spacing=2):
     widths = [max(len(line) for line in block) for block, _ in blocks]
-    if len(blocks) == 1: return blocks, widths
+    if len(blocks) == 1:
+        return blocks, widths
     lens = [len(block) for block, _ in blocks]
     ncol = max_width // max(widths)
     parts = partition_balanced(lens, ncol, reorder=True)
@@ -327,7 +379,8 @@ def _columnize_blocks(blocks, max_width, spacing=2):
     # assert 0, f'parts: {parts}'
     colwidth = [max(widths[i] for i in part) + 2 for part in parts]
     cols = [evn.addreduce([blocks[i][0] for i in part]) for part in parts]
-    cols = [[l.rstrip().ljust(colwidth[i]) for l in cols[i]] for i in range(len(cols))]
+    cols = [[line.rstrip().ljust(colwidth[i]) for line in cols[i]]
+            for i in range(len(cols))]
     for c, w in zip(cols, colwidth):
         for _ in range(max(map(len, cols)) - len(c)):
             c.append(' ' * w)
@@ -335,7 +388,10 @@ def _columnize_blocks(blocks, max_width, spacing=2):
     alllines = [''.join(lines) for lines in zip(*cols)]
     return alllines, colwidth
 
-def partition_balanced(nums: list[int], n_parts: int, reorder: bool = True) -> list[list[int]]:
+
+def partition_balanced(nums: list[int],
+                       n_parts: int,
+                       reorder: bool = True) -> list[list[int]]:
     """
     Partition a list of integers into `n_parts` sublists to balance the sums as evenly as possible.
 
@@ -353,11 +409,13 @@ def partition_balanced(nums: list[int], n_parts: int, reorder: bool = True) -> l
     if n_parts < 2:
         return [list(range(len(nums)))]
     if n_parts > len(nums):
-        return [[i] for i in range(len(nums))] + [[] for _ in range(n_parts - len(nums))]
+        return [[i] for i in range(len(nums))
+                ] + [[] for _ in range(n_parts - len(nums))]
 
     if reorder:
         # Use greedy load balancing (same as before)
         import heapq
+
         indexed = sorted(enumerate(nums), key=lambda x: -x[1])
         partitions: list[list[int]] = [[] for _ in range(n_parts)]
         heap = [(0, i) for i in range(n_parts)]

@@ -3,7 +3,9 @@
   during a function call.
 """
 
+import functools
 import evn
+
 
 def preserve_random_state(func0=None, seed0=None):
     """Decorator to preserve the random state during function execution.

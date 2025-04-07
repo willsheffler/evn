@@ -1,6 +1,7 @@
 import click
 from evn import bunchify
 
+
 def extract_command_info(cmd: click.Command):
     """
     Extracts the underlying function (callback) and details of all parameters
@@ -27,7 +28,8 @@ def extract_command_info(cmd: click.Command):
         info = {
             'name': param.name,
             'type': str(param.type),
-            'help': getattr(param, 'help', None),  # Only options typically have help text
+            'help': getattr(param, 'help',
+                            None),  # Only options typically have help text
             'default': param.default,
             'required': param.required,
         }
@@ -40,11 +42,7 @@ def extract_command_info(cmd: click.Command):
             info['opts'] = param.opts
             info['attrs'] = param.attrs
         else:
-            raise TypeError(f"Unsupported parameter type: {type(param)}")
+            raise TypeError(f'Unsupported parameter type: {type(param)}')
         params_info.append(info)
 
-    return bunchify({
-        'function': command_func,
-        'parameters': params_info
-    })
-
+    return bunchify({'function': command_func, 'parameters': params_info})

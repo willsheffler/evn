@@ -3,20 +3,24 @@ from typing import Any, Callable, Optional, Tuple, Dict, List, Set
 from collections.abc import Mapping
 import evn
 
+
 @evn.dispatch(dict, dict)
 def diff_impl(tree1, tree2, out=print, **kw):
     differ = evn.kwcall(kw, TreeDiffer)
     diff = evn.kwcall(kw, differ.diff, tree1, tree2)
     return diff
 
+
 class ShallowHandling(Enum):
-    DEEP = "deep"
-    SHALLOW = "shallow"
-    SUMMARY = "summary"
+    DEEP = 'deep'
+    SHALLOW = 'shallow'
+    SUMMARY = 'summary'
+
 
 class TreeDiffStrategy:
 
-    def is_shallow(self, path: Tuple[str, ...], val1: Any, val2: Any) -> ShallowHandling:
+    def is_shallow(self, path: Tuple[str, ...], val1: Any,
+                   val2: Any) -> ShallowHandling:
         return ShallowHandling.DEEP
 
     def values_equal(self, val1: Any, val2: Any) -> bool:
@@ -28,7 +32,8 @@ class TreeDiffStrategy:
     def should_ignore_key(self, path: Tuple[str, ...], key: str) -> bool:
         return False
 
-    def classify_lists(self, l1: list, l2: list) -> Dict[str, List[Tuple[int, int]]]:
+    def classify_lists(self, l1: list,
+                       l2: list) -> Dict[str, List[Tuple[int, int]]]:
 
         def is_nested(x):
             return isinstance(x, (Mapping, list))
@@ -39,15 +44,17 @@ class TreeDiffStrategy:
                 nested.append((i, i))
             else:
                 flat.append((i, i))
-        return {"flat": flat, "nested": nested}
+        return {'flat': flat, 'nested': nested}
 
     def compare_flat_lists(self, l1: list, l2: list) -> Tuple[list, list]:
         return sorted(set(l1) - set(l2)), sorted(set(l2) - set(l1))
 
-    def match_lists_by_type(self, path: Tuple[str, ...], l1: list, l2: list) -> Optional[str]:
+    def match_lists_by_type(self, path: Tuple[str, ...], l1: list,
+                            l2: list) -> Optional[str]:
         if all(isinstance(x, Mapping) for x in l1 + l2) and len(l1) == len(l2):
-            return "zip"
+            return 'zip'
         return None
+
 
 class TreeDiffer:
 
@@ -66,7 +73,7 @@ class TreeDiffer:
         self.summarize_subtrees = summarize_subtrees
         self.summary_len = summary_len
         self.max_depth = max_depth
-        self.path_fmt = path_fmt or (lambda p: ".".join(p))
+        self.path_fmt = path_fmt or (lambda p: '.'.join(p))
         self._seen_pairs: Set[Tuple[int, int]] = set()
 
     def diff(self, cfg1: Any, cfg2: Any) -> dict:
@@ -116,30 +123,31 @@ class TreeDiffer:
             else:
                 node = {**diff}
                 if subtree1 or subtree2:
-                    node['_diff'] = (self._summarize(subtree1), self._summarize(subtree2))
+                    node['_diff'] = (self._summarize(subtree1),
+                                     self._summarize(subtree2))
                 return node
 
         elif isinstance(val1, list) and isinstance(val2, list):
             match_mode = self.strategy.match_lists_by_type(path, val1, val2)
             out = {}
-            if match_mode == "zip":
+            if match_mode == 'zip':
                 for i, (x1, x2) in enumerate(zip(val1, val2)):
-                    d = self._walk(x1, x2, path + (f"[{i}]", ))
+                    d = self._walk(x1, x2, path + (f'[{i}]', ))
                     if d is not None:
                         out.setdefault('_nested', {})[i] = d
             else:
                 idxs = self.strategy.classify_lists(val1, val2)
 
-                if idxs["flat"]:
-                    l1 = [val1[i] for i, _ in idxs["flat"]]
-                    l2 = [val2[j] for _, j in idxs["flat"]]
+                if idxs['flat']:
+                    l1 = [val1[i] for i, _ in idxs['flat']]
+                    l2 = [val2[j] for _, j in idxs['flat']]
                     flat_diff = self.strategy.compare_flat_lists(l1, l2)
                     if flat_diff[0] or flat_diff[1]:
                         out['_flat'] = flat_diff
 
                 nested_diffs = []
-                for i, j in idxs["nested"]:
-                    d = self._walk(val1[i], val2[j], path + (f"[{i}]", ))
+                for i, j in idxs['nested']:
+                    d = self._walk(val1[i], val2[j], path + (f'[{i}]', ))
                     if d is not None:
                         nested_diffs.append((i, d))
 
@@ -165,10 +173,10 @@ class TreeDiffer:
             if isinstance(node, dict):
                 for k, v in node.items():
                     if k in ('_diff', '_flat') and not isinstance(v, dict):
-                        flat[self.path_fmt(path) + f":{k}"] = v
+                        flat[self.path_fmt(path) + f':{k}'] = v
                     elif k == '_nested':
                         for idx, sub in v.items():
-                            walk(sub, path + (f"[{idx}]", ))
+                            walk(sub, path + (f'[{idx}]', ))
                     else:
                         walk(v, path + (k, ))
             else:
@@ -177,20 +185,24 @@ class TreeDiffer:
         walk(nested, ())
         return flat
 
+
 class SummaryStrategy(TreeDiffStrategy):
 
     def is_shallow(self, path, v1, v2):
         return ShallowHandling.SUMMARY
 
+
 class IgnoreKeyStrategy(TreeDiffStrategy):
 
     def should_ignore_key(self, path, key):
-        return key.startswith("_")
+        return key.startswith('_')
+
 
 class IgnoreUnderscoreKeysStrategy(TreeDiffStrategy):
 
     def should_ignore_key(self, path, key):
-        return key.startswith("_")
+        return key.startswith('_')
+
 
 class FloatToleranceStrategy(TreeDiffStrategy):
 
@@ -201,16 +213,21 @@ class FloatToleranceStrategy(TreeDiffStrategy):
 
     def compare_flat_lists(self, l1, l2):
         only1, only2 = [], []
-        only1.extend(v for v in l1 if not any(self.values_equal(v, w) for w in l2))
-        only2.extend(v for v in l2 if not any(self.values_equal(v, w) for w in l1))
+        only1.extend(v for v in l1
+                     if not any(self.values_equal(v, w) for w in l2))
+        only2.extend(v for v in l2
+                     if not any(self.values_equal(v, w) for w in l1))
         return only1, only2
+
 
 class ShallowOnPathStrategy(TreeDiffStrategy):
 
     def is_shallow(self, path, v1, v2):
-        return ShallowHandling.SHALLOW if "meta" in path else ShallowHandling.DEEP
+        return ShallowHandling.SHALLOW if 'meta' in path else ShallowHandling.DEEP
+
 
 class SummaryOnPathStrategy(TreeDiffStrategy):
 
     def is_shallow(self, path, v1, v2):
-        return ShallowHandling.SUMMARY if path and path[-1] == "data" else ShallowHandling.DEEP
+        return ShallowHandling.SUMMARY if path and path[
+            -1] == 'data' else ShallowHandling.DEEP

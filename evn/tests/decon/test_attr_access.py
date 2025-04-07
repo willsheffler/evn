@@ -5,8 +5,10 @@ import pytest
 
 import evn
 
+
 def main():
     evn.tests.maintest(namespace=globals())
+
 
 def test_iterize():
 
@@ -16,6 +18,7 @@ def test_iterize():
 
     assert Foo(4) == 4 * 4
     assert Foo([1, 2]) == [1, 4]
+
 
 def test_iterize_basetype():
 
@@ -29,6 +32,7 @@ def test_iterize_basetype():
     assert bar('a b') == ['aa', 'bb']
     assert bar(1.1) == 2.2
 
+
 def test_iterize_asdict():
 
     @evn.iterize_on_first_param(basetype=str, asdict=True)
@@ -39,6 +43,7 @@ def test_iterize_asdict():
     assert baz(['a', 'b']) == dict(a='aa', b='bb')
     assert baz('a b') == dict(a='aa', b='bb')
     assert baz(1.1) == 2.2
+
 
 def test_iterize_asbunch():
 
@@ -52,6 +57,7 @@ def test_iterize_asbunch():
     assert baz('a b') == dict(a='aa', b='bb')
     assert baz(1.1) == 2.2
     assert baz([1, 2]) == {1: 2, 2: 4}
+
 
 def test_iterize_allowmap():
 
@@ -67,6 +73,7 @@ def test_iterize_allowmap():
         return 2 * a
 
     assert bar(dict(a=1, b=2)) == dict(a=2, b=4)
+
 
 def test_iterize_basetype_string():
 
@@ -89,17 +96,20 @@ def test_iterize_basetype_string():
     assert bar(mylist([[], []])) == 2
     # assert bar(e/[dict(a=1, b=2)]) == ['a', 'b']
 
+
 # Define a custom iterable type for testing
 class CustomIterable(namedtuple('CustomIterable', ['items'])):
 
     def __iter__(self):
         return iter(self.items)
 
+
 class TestIterizeOnFirstParam(unittest.TestCase):
     """Test suite for the evn.iterize_on_first_param decorator."""
 
     def setUp(self):
         """Set up test functions with the decorator applied in different ways."""
+
         # Basic decorator without arguments
         @evn.iterize_on_first_param
         def square(x):
@@ -130,7 +140,7 @@ class TestIterizeOnFirstParam(unittest.TestCase):
         # Using the pre-configured path decorator
         @evn.iterize_on_first_param_path
         def process_path(path):
-            return f"Processing {path}"
+            return f'Processing {path}'
 
         self.process_path = process_path
 
@@ -148,10 +158,10 @@ class TestIterizeOnFirstParam(unittest.TestCase):
         self.empty_list = []
         self.custom_iterable = CustomIterable([1, 2, 3])
         self.nested_lists = [[1, 2], [3, 4]]
-        self.string = "hello"
-        self.string_list = ["hello", "world"]
-        self.path_obj = Path("sample.txt")
-        self.path_list = [Path("file1.txt"), Path("file2.txt")]
+        self.string = 'hello'
+        self.string_list = ['hello', 'world']
+        self.path_obj = Path('sample.txt')
+        self.path_list = [Path('file1.txt'), Path('file2.txt')]
 
     def tearDown(self):
         """Clean up after each test."""
@@ -170,8 +180,8 @@ class TestIterizeOnFirstParam(unittest.TestCase):
 
     def test_tuple_input(self):
         """Test with a tuple input for the first parameter."""
-        assert self.square(self.tuple_data) == [16, 25, 36]
-        assert self.multiply(self.tuple_data, 3) == [12, 15, 18]
+        assert self.square(self.tuple_data) == (16, 25, 36)
+        assert self.multiply(self.tuple_data, 3) == (12, 15, 18)
 
     def test_empty_iterable(self):
         """Test with an empty iterable."""
@@ -180,8 +190,9 @@ class TestIterizeOnFirstParam(unittest.TestCase):
 
     def test_custom_iterable(self):
         """Test with a custom iterable type."""
-        assert self.square(self.custom_iterable) == [1, 4, 9]
-        assert self.multiply(self.custom_iterable, 5) == [5, 10, 15]
+        assert self.square(self.custom_iterable) == CustomIterable([1, 4, 9])
+        assert self.multiply(self.custom_iterable,
+                             5) == CustomIterable([5, 10, 15])
 
     def test_basetype_exclusion(self):
         """Test that basetyped objects are treated as scalars."""
@@ -192,18 +203,24 @@ class TestIterizeOnFirstParam(unittest.TestCase):
     def test_multiple_basetype_exclusion(self):
         """Test with multiple basetype exclusions."""
         # String should be treated as scalar with path decorator
-        assert self.process_path(self.string) == f"Processing {self.string}"
+        assert self.process_path(self.string) == f'Processing {self.string}'
         # Path object should be treated as scalar with path decorator
-        assert self.process_path(self.path_obj) == f"Processing {self.path_obj}"
+        assert self.process_path(
+            self.path_obj) == f'Processing {self.path_obj}'
         # List of strings should be processed element-wise
-        assert self.process_path(["file1.txt",
-                                  "file2.txt"]) == ["Processing file1.txt", "Processing file2.txt"]
+        assert self.process_path(
+            ['file1.txt',
+             'file2.txt']) == ['Processing file1.txt', 'Processing file2.txt']
         # List of Path objects should be processed element-wise
-        expected = [f"Processing {self.path_list[0]}", f"Processing {self.path_list[1]}"]
+        expected = [
+            f'Processing {self.path_list[0]}',
+            f'Processing {self.path_list[1]}'
+        ]
         assert self.process_path(self.path_list) == expected
 
     def test_nested_iterables(self):
         """Test handling of nested iterables."""
+
         # Define a custom function that handles lists for this test
         @evn.iterize_on_first_param
         def sum_list(x):
@@ -215,8 +232,8 @@ class TestIterizeOnFirstParam(unittest.TestCase):
         """Test that the decorator preserves function metadata."""
         decorated = evn.iterize_on_first_param(self.original_func)
 
-        assert decorated.__name__ == "original_func"
-        assert decorated.__doc__ == "Test docstring."
+        assert decorated.__name__ == 'original_func'
+        assert decorated.__doc__ == 'Test docstring.'
 
     def test_generator_input(self):
         """Test with a generator expression as input."""
@@ -232,9 +249,11 @@ class TestIterizeOnFirstParam(unittest.TestCase):
 
     def test_remove_first_nonempty(self):
         """Test with a non-empty iterable."""
-        assert self.remove_first(self.string) == "ello"
-        assert self.remove_first(self.string_list) == ["ello", "orld"]
-        assert self.remove_first(self.string_list + ['a', '']) == ["ello", "orld"]
+        assert self.remove_first(self.string) == 'ello'
+        assert self.remove_first(self.string_list) == ['ello', 'orld']
+        assert self.remove_first(self.string_list +
+                                 ['a', '']) == ['ello', 'orld']
+
 
 class TestIterizeableFunction(unittest.TestCase):
     """Test suite for the evn.is_iterizeable helper function."""
@@ -242,15 +261,16 @@ class TestIterizeableFunction(unittest.TestCase):
     def setUp(self):
         """Set up test data."""
         self.list_data = [1, 2, 3]
-        self.string = "hello"
+        self.string = 'hello'
         self.integer = 42
-        self.path_obj = Path("test.txt")
+        self.path_obj = Path('test.txt')
 
     def test_basic_iterizeable(self):
         """Test basic evn.is_iterizeable function without basetype."""
         assert evn.is_iterizeable(self.list_data) is True
         assert evn.is_iterizeable(self.string) is False
-        assert evn.is_iterizeable(self.string, basetype=None) is True  # String is iterable
+        assert evn.is_iterizeable(self.string,
+                                  basetype=None) is True  # String is iterable
         assert evn.is_iterizeable(self.integer) is False
 
     def test_iterizeable_with_basetype(self):
@@ -267,6 +287,7 @@ class TestIterizeableFunction(unittest.TestCase):
         assert evn.is_iterizeable(self.path_obj, basetype=(str, Path)) is False
         assert evn.is_iterizeable(self.list_data, basetype=(str, Path)) is True
 
+
 def test_subscriptable_for_attributes__getitem__():
 
     @evn.subscriptable_for_attributes
@@ -275,6 +296,7 @@ def test_subscriptable_for_attributes__getitem__():
 
     assert Foo()['a'] == 6
     assert Foo()['a b'] == (6, 7)
+
 
 def test_subscriptable_for_attributes_enumerate():
 
@@ -285,8 +307,10 @@ def test_subscriptable_for_attributes_enumerate():
             self.a, self.b, self.c = range(6), range(1, 7), range(10, 17)
 
     foo = Foo()
-    for (i, a, b, c), e, f, g in zip(foo.enumerate('a b c'), range(6), range(1, 7), range(10, 17)):
+    for (i, a, b, c), e, f, g in zip(foo.enumerate('a b c'), range(6),
+                                     range(1, 7), range(10, 17)):
         assert a == e and b == f and c == g
+
 
 def test_subscriptable_for_attributes_enumerate_noarg():
 
@@ -297,8 +321,10 @@ def test_subscriptable_for_attributes_enumerate_noarg():
             self.a, self.b, self.c = range(6), range(1, 7), range(10, 17)
 
     foo = Foo()
-    for (i, a, b, c), e, f, g in zip(foo.enumerate(), range(6), range(1, 7), range(10, 17)):
+    for (i, a, b, c), e, f, g in zip(foo.enumerate(), range(6), range(1, 7),
+                                     range(10, 17)):
         assert a == e and b == f and c == g
+
 
 def test_subscriptable_for_attributes_groupby():
 
@@ -306,16 +332,21 @@ def test_subscriptable_for_attributes_groupby():
     class Foo:
 
         def __init__(self):
-            self.a, self.b, self.c, self.group = range(6), range(1, 7), range(10, 17), 'aaabbb'
+            self.a, self.b, self.c, self.group = range(6), range(1, 7), range(
+                10, 17), 'aaabbb'
 
     foo = Foo()
     # for g, a, b, c in foo.groupby('group', 'a b c'):
-        # ic(g, a, b, c)
+    # ic(g, a, b, c)
     v = list(foo.groupby('group', 'a c'))
-    assert v == [('a', (0, 1, 2), (10, 11, 12)), ('b', (3, 4, 5), (13, 14, 15))]
+    assert v == [('a', (0, 1, 2), (10, 11, 12)),
+                 ('b', (3, 4, 5), (13, 14, 15))]
     v = list(foo.groupby('group'))
-    assert v == [('a', evn.Bunch(a=(0, 1, 2), b=(1, 2, 3), c=(10, 11, 12))),
-                 ('b', evn.Bunch(a=(3, 4, 5), b=(4, 5, 6), c=(13, 14, 15)))]
+    assert v == [
+        ('a', evn.Bunch(a=(0, 1, 2), b=(1, 2, 3), c=(10, 11, 12))),
+        ('b', evn.Bunch(a=(3, 4, 5), b=(4, 5, 6), c=(13, 14, 15))),
+    ]
+
 
 def test_subscriptable_for_attributes_fzf():
 
@@ -344,6 +375,7 @@ def test_subscriptable_for_attributes_fzf():
         foo.fzf('redun')
     assert foo.fzf('red1') == 'f'
 
+
 def test_getitem_picklable():
 
     @evn.subscriptable_for_attributes
@@ -354,6 +386,7 @@ def test_getitem_picklable():
 
     foo = Foo()
     assert foo.pick('a b').keys() == {'a', 'b'}
+
 
 def test_safe_lru_cache():
     ncompute = 0
@@ -370,6 +403,7 @@ def test_safe_lru_cache():
     example([1, 2, 3])  #  Computing [1, 2, 3] (because list is unhashable)
     assert ncompute == 3
 
+
 def test_safe_lru_cache_noarg():
     ncompute = 0
 
@@ -385,6 +419,7 @@ def test_safe_lru_cache_noarg():
     example([1, 2, 3])  #  Computing [1, 2, 3] (because list is unhashable)
     assert ncompute == 3
 
+
 def test_is_safe_lru_cache_necessary():
 
     @evn.ft.lru_cache
@@ -393,6 +428,7 @@ def test_is_safe_lru_cache_necessary():
 
     with pytest.raises(TypeError):
         example([1, 2, 3])
+
 
 if __name__ == '__main__':
     main()

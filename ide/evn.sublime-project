@@ -29,9 +29,17 @@
     "build_systems":
     [
         {
+            "name": "ruff",
+            "working_dir": "$folder",
+            "shell_cmd": "PYTHONPATH=. ruff check evn 2>&1 | tee $folder/ide/sublime_build.log",
+            // "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
+            "file_regex": "^(.+\\.py):([0-9]+):(\\d+): (.*)$"
+
+        },
+        {
             "name": "run_tests_on_file",
             "working_dir": "$folder",
-            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_on_file.py --quiet evn evn/_prelude/chrono.py 2>&1 | tee $folder/ide/sublime_build.log",
+            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_on_file.py --quiet evn $file 2>&1 | tee $folder/ide/sublime_build.log",
             "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
         },
         {

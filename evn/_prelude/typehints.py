@@ -9,6 +9,7 @@ from typing import (
     TypeVar,
     Union,
 )
+
 if sys.version_info.minor >= 10:
     from typing import ParamSpec
 else:
@@ -34,6 +35,7 @@ else:
     P.args = list[Any]
     P.kwargs = KW
     F = Callable[[Any, ...], R]
+
 
 def basic_typevars(which) -> list[Union[TypeVar, ParamSpec]]:
     result = [globals()[k] for k in which]

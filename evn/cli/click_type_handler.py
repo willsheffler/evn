@@ -24,13 +24,15 @@ Example (doctestable):
 
 >>> from evn.cli.click_type_handler import ClickTypeHandlers, ClickTypeHandler
 >>> class DummyHandler(ClickTypeHandler):
-...     supported_types = {int: "optional_metadata"}
-...     def convert(self, value, param, ctx): return int(value)
+...     supported_types = {int: 'optional_metadata'}
+...
+...     def convert(self, value, param, ctx):
+...         return int(value)
 
 >>> handlers = ClickTypeHandlers()
 >>> handlers.add(DummyHandler())
 >>> param_type = handlers.typehint_to_click_paramtype(int, metadata=None)
->>> assert param_type.convert("42", None, None) == 42
+>>> assert param_type.convert('42', None, None) == 42
 
 See Also:
 - evn.cli.basic_click_type_handlers
@@ -45,13 +47,16 @@ import enum
 from functools import lru_cache
 import click
 
+
 class MetadataPolicy(str, enum.Enum):
-    FORBID = "no_metadata"
-    OPTIONAL = "optional_metadata"
-    REQUIRED = "require_metadata"
+    FORBID = 'no_metadata'
+    OPTIONAL = 'optional_metadata'
+    REQUIRED = 'require_metadata'
+
 
 class HandlerNotFoundError(RuntimeError):
     pass
+
 
 class ClickTypeHandlers(set):
     """
@@ -63,28 +68,34 @@ class ClickTypeHandlers(set):
 
     @classmethod
     def __new__(cls, val=(), *a, **kw):
-        if isinstance(cls, ClickTypeHandlers): return val
+        if isinstance(cls, ClickTypeHandlers):
+            return val
         return super().__new__(val)
 
     def ordered_handlers(self, basetype, metadata):
         [h for h in self if h.metadata_policy(basetype)]
         return list(sorted(self, key=lambda x: x.priority(), reverse=True))
 
-    def typehint_to_click_paramtype(self, basetype, metadata) -> click.ParamType:
+    def typehint_to_click_paramtype(self, basetype,
+                                    metadata) -> click.ParamType:
         """Given a basetype and optional metadata, return the Click ParamType to use."""
         handlers = self.ordered_handlers(basetype, metadata)
         if metadata:
             for handler_class in handlers:
-                if handler_class.metadata_policy(basetype) == MetadataPolicy.REQUIRED:
+                if handler_class.metadata_policy(
+                        basetype) == MetadataPolicy.REQUIRED:
                     with contextlib.suppress(HandlerNotFoundError):
-                        return get_cached_paramtype(handler_class, basetype, metadata)
+                        return get_cached_paramtype(handler_class, basetype,
+                                                    metadata)
         for handler_class in handlers:
-            if handler_class.metadata_policy(basetype) == MetadataPolicy.OPTIONAL:
+            if handler_class.metadata_policy(
+                    basetype) == MetadataPolicy.OPTIONAL:
                 with contextlib.suppress(HandlerNotFoundError):
                     return get_cached_paramtype(handler_class, basetype)
         if not metadata:
             for handler_class in handlers:
-                if handler_class.metadata_policy(basetype) == MetadataPolicy.FORBID:
+                if handler_class.metadata_policy(
+                        basetype) == MetadataPolicy.FORBID:
                     with contextlib.suppress(HandlerNotFoundError):
                         return get_cached_paramtype(handler_class, basetype)
         if not metadata and basetype in (int, float, str, bool, uuid.UUID):
@@ -92,7 +103,10 @@ class ClickTypeHandlers(set):
         if not metadata and basetype == inspect._empty:
             # Special case for empty annotations (e.g., no type hint).
             return click.ParamType()
-        raise HandlerNotFoundError(f'No suitable Click ParamType found for basetype {basetype} with metadata {metadata} using handlers: {handlers}')
+        raise HandlerNotFoundError(
+            f'No suitable Click ParamType found for basetype {basetype} with metadata {metadata} using handlers: {handlers}'
+        )
+
 
 class ClickTypeHandler(click.ParamType):
     """
@@ -108,6 +122,7 @@ class ClickTypeHandler(click.ParamType):
     It also defines a method 'typehint_to_click_paramtype' (the conversion function)
     and a priority computation function.
     """
+
     # Dictionary of types this handler applies to.
     # Example: {int: False, float: False, list: True}
     supported_types: dict[type, MetadataPolicy] = {}
@@ -129,7 +144,8 @@ class ClickTypeHandler(click.ParamType):
         """
         if not cls.handles_type(basetype, metadata):
             raise HandlerNotFoundError(
-                f"{cls.__class__.__name__} does not handle type {basetype} with metadata {metadata}")
+                f'{cls.__class__.__name__} does not handle type {basetype} with metadata {metadata}'
+            )
         return cls()
 
     @classmethod
@@ -142,8 +158,10 @@ class ClickTypeHandler(click.ParamType):
         for typ, metapol in cls.supported_types.items():
             # print(typ, basetype, metadata, metapol)
             if issubclass(basetype, typ):
-                if metapol == MetadataPolicy.REQUIRED: return bool(metadata)
-                if metapol == MetadataPolicy.FORBID: return not metadata
+                if metapol == MetadataPolicy.REQUIRED:
+                    return bool(metadata)
+                if metapol == MetadataPolicy.FORBID:
+                    return not metadata
                 return True
         return False
 
@@ -174,7 +192,7 @@ class ClickTypeHandler(click.ParamType):
             postprocessed = self.postprocess_value(converted)
             return postprocessed
         except Exception as e:
-            self.fail(f"Conversion failed for value {value}: {e}", param, ctx)
+            self.fail(f'Conversion failed for value {value}: {e}', param, ctx)
 
     @classmethod
     def priority(cls):
@@ -182,14 +200,14 @@ class ClickTypeHandler(click.ParamType):
 
     # @classmethod
     # def type_specificity(cls, basetype):
-        # """
-        # Compute a basic measure of specificity for the basetype.
-        # # For generic types (with __args__), count the number of arguments that are not typing.Any.
-        # """
-        # if hasattr(basetype, '__args__') and basetype.__args__:
-            # specificity = sum(1 for arg in basetype.__args__ if arg is not typing.Any)
-            # return specificity
-        # return 0
+    # """
+    # Compute a basic measure of specificity for the basetype.
+    # # For generic types (with __args__), count the number of arguments that are not typing.Any.
+    # """
+    # if hasattr(basetype, '__args__') and basetype.__args__:
+    # specificity = sum(1 for arg in basetype.__args__ if arg is not typing.Any)
+    # return specificity
+    # return 0
 
     # def compute_priority(self, basetype, metadata, mro_rank: int):
     #     """
@@ -206,6 +224,7 @@ class ClickTypeHandler(click.ParamType):
     #                 bonus += self.METADATA_BONUS
     #                 break
     #     return mro_rank + bonus + specificity
+
 
 # Caching function: cache the computed Click ParamType based on handler class, basetype, and metadata.
 @lru_cache(maxsize=None)

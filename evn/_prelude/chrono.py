@@ -9,9 +9,10 @@ np = lazyimport('numpy')
 import evn
 from evn._prelude.make_decorator import make_decorator
 
+
 @dataclass(slots=True)
 class Chrono:
-    name: str = "Chrono"
+    name: str = 'Chrono'
     initial_context: str = 'misc'
     verbose: bool = False
     start_time: float = field(default_factory=perf_counter)
@@ -31,18 +32,19 @@ class Chrono:
         """Stop the chrono and store total elapsed time."""
         assert not self.stopped
         self.exit_context(self.initial_context)
-        self.store_checkpoint(TimerContext("total", 0, self.elapsed()))
+        self.store_checkpoint(TimerContext('total', 0, self.elapsed()))
         self.stopped = True
 
     def __enter__(self):
         assert not self.stopped
-        if not self.entered: self.start()
+        if not self.entered:
+            self.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         assert not self.stopped
         if exc_type:
-            print(f"An exception of type {exc_type} occurred: {exc_val}")
+            print(f'An exception of type {exc_type} occurred: {exc_val}')
         self.stop()
         return False
 
@@ -52,27 +54,29 @@ class Chrono:
         self.profile.setdefault(context.name, []).append(context.final())
 
     def context_name(self, obj: 'str|object') -> str:
-        if isinstance(obj, str): return obj
+        if isinstance(obj, str):
+            return obj
         return f'{obj.__module__}.{obj.__qualname__}'.replace('.<locals>', '')
 
     @trace
     def enter_context(self, ctx):
         assert not self.stopped
         name = self.context_name(ctx)
-        if self.contextstack: self.contextstack[-1].subcontext_begins()
+        if self.contextstack:
+            self.contextstack[-1].subcontext_begins()
         self.contextstack.append(TimerContext(name))
-        print('enter_context', self.contextstack[-1].name, len(self.contextstack))
 
     @trace
     def exit_context(self, ctx: 'str|object' = 'timer shutdown'):
         assert not self.stopped
         name = self.context_name(ctx)
-        if not self.contextstack: raise RuntimeError("Chrono is not running")
+        if not self.contextstack:
+            raise RuntimeError('Chrono is not running')
         err = f'stored context: {self.contextstack[-1].name} does not match exit context: {name}'
-        print(' exit_context', self.contextstack[-1].name, len(self.contextstack)-1)
         assert self.contextstack[-1].name == name, err
         self.store_checkpoint(self.contextstack.pop())
-        if self.contextstack: self.contextstack[-1].subcontext_ends()
+        if self.contextstack:
+            self.contextstack[-1].subcontext_ends()
 
     def elapsed(self) -> float:
         """Return the total elapsed time."""
@@ -93,7 +97,7 @@ class Chrono:
         """
         return self.profile.get(name, [])
 
-    def report_dict(self, order="longest", summary=sum):
+    def report_dict(self, order='longest', summary=sum):
         """
         Generate a report dictionary of
          profile.
@@ -106,15 +110,16 @@ class Chrono:
             dict: Checkpoint profile summary.
         """
         items = self.profile.keys()
-        if order == "longest":
-            sorted_items = sorted(items, key=lambda k: self.get_checkpoint_data(k))
-        elif order == "callorder":
+        if order == 'longest':
+            sorted_items = sorted(items,
+                                  key=lambda k: self.get_checkpoint_data(k))
+        elif order == 'callorder':
             sorted_items = items
         else:
-            raise ValueError(f"Unknown order: {order}")
+            raise ValueError(f'Unknown order: {order}')
         return {k: summary(self.get_checkpoint_data(k)) for k in sorted_items}
 
-    def report(self, order="longest", summary=sum, printme=True) -> str:
+    def report(self, order='longest', summary=sum, printme=True) -> str:
         """
         Print or return a report of
          profile.
@@ -128,11 +133,14 @@ class Chrono:
             str: Report string.
         """
         profile = self.report_dict(order=order, summary=summary)
-        report_lines = [f"Chrono Report ({self.name})"]
-        report_lines.extend(f"{name}: {time_:.6f}s" for name, time_ in profile.items())
-        report = "\n".join(report_lines)
-        if printme: print(report)
+        report_lines = [f'Chrono Report ({self.name})']
+        report_lines.extend(f'{name}: {time_:.6f}s'
+                            for name, time_ in profile.items())
+        report = '\n'.join(report_lines)
+        if printme:
+            print(report)
         return report
+
 
 @dataclass(slots=True)
 class TimerContext:
@@ -153,17 +161,21 @@ class TimerContext:
     def subcontext_ends(self):
         self.start = perf_counter()
 
+
 evn.chrono_main = Chrono('main')
+
 
 def chrono_enter_context(name, **kw):
     global chrono_main
-    t = kw.get("chrono", evn.chrono_main)
+    t = kw.get('chrono', evn.chrono_main)
     t.enter_context(name, **kw)
+
 
 def chrono_exit_context(name, **kw):
     global chrono_main
-    t = kw.get("chrono", evn.chrono_main)
+    t = kw.get('chrono', evn.chrono_main)
     t.exit_context(name, **kw)
+
 
 @make_decorator(chrono=evn.chrono_main)
 def chrono(wrapped, args, kw, chrono=None):
@@ -173,6 +185,7 @@ def chrono(wrapped, args, kw, chrono=None):
     timer.exit_context(wrapped)
     if not isinstance(result, types.GeneratorType):
         return result
+
     def generator_proxy():
         try:
             geniter = iter(result)
@@ -187,4 +200,5 @@ def chrono(wrapped, args, kw, chrono=None):
             timer.exit_context(wrapped)
             if hasattr(result, 'close'):
                 result.close()
+
     return generator_proxy()

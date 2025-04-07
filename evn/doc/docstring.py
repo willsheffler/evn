@@ -1,5 +1,6 @@
 import re
 
+
 def extract_param_help(docstring: str) -> dict[str, str]:
     """
     Extract parameter descriptions from a Sphinx-style docstring.
@@ -13,7 +14,7 @@ def extract_param_help(docstring: str) -> dict[str, str]:
         return {}
 
     param_help = {}
-    pattern = re.compile(r"^\s*:param (\w+)\s*:\s*(.+)$", re.MULTILINE)
+    pattern = re.compile(r'^\s*:param (\w+)\s*:\s*(.+)$', re.MULTILINE)
 
     for match in pattern.finditer(docstring):
         name, desc = match.groups()

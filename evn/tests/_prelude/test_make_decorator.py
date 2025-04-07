@@ -2,6 +2,7 @@ import types
 import pytest
 import evn
 
+
 def main():
     evn.testing.maintest(
         namespace=globals(),
@@ -10,6 +11,7 @@ def main():
         check_xfail=False,
         chrono=False,
     )
+
 
 def test_deco():
     result = ''
@@ -31,6 +33,7 @@ def test_deco():
     bar()
     assert result == 'prefoobar'  # Check the result of the decorator
 
+
 def test_deco_config_default():
     result = ''
 
@@ -49,6 +52,7 @@ def test_deco_config_default():
     assert result == 'bazbar'  # Check the result of the decorator
     result = ''
 
+
 def test_deco_config():
     result = ''
 
@@ -66,12 +70,14 @@ def test_deco_config():
     aaa()
     assert result == 'aaaaaabar'  # Check the result of the decorator with different message
 
+
 def test_deco_not_callable_error():
     with pytest.raises(TypeError):
 
         @evn.make_decorator('baz')
         def foo(func, args, kwargs):
             return func(*args, **kwargs)
+
 
 def test_deco_config_kwargs_error():
     result = ''
@@ -89,6 +95,7 @@ def test_deco_config_kwargs_error():
             nonlocal result
             result += 'bar'
 
+
 def test_deco_config_args_error():
     result = ''
 
@@ -104,6 +111,7 @@ def test_deco_config_args_error():
         def aaa():
             nonlocal result
             result += 'bar'
+
 
 def test_deco_method():
 
@@ -123,6 +131,7 @@ def test_deco_method():
     foo = Foo()
     assert foo.add(1, 2) == 6
     assert foo.mul(1, 2) == 2
+
 
 def test_deco_class():
 
@@ -155,17 +164,18 @@ def test_deco_class():
     assert bar.add(1, 2) == 8
     assert bar.mul(1, 2) == 7
 
+
 def test_basic_function_decorator():
     log = []
 
     @evn.make_decorator
     def logger(func, args, kwargs):
-        log.append(f"calling {func.__name__}")
+        log.append(f'calling {func.__name__}')
         return func(*args, **kwargs)
 
     @logger
     def foo():
-        log.append("foo ran")
+        log.append('foo ran')
         return 42
 
     result = foo()
@@ -183,11 +193,11 @@ def test_configurable_decorator_default_and_override():
 
     @trace
     def one():
-        log.append("one")
+        log.append('one')
 
     @trace(prefix='** ')
     def two():
-        log.append("two")
+        log.append('two')
 
     one()
     two()
@@ -195,13 +205,16 @@ def test_configurable_decorator_default_and_override():
 
 
 def test_strict_mode_disallows_unknown_config():
+
     @evn.make_decorator(msg='ok', strict=True)
     def f(func, args, kwargs, msg):
         return func(*args, **kwargs)
 
     with pytest.raises(TypeError):
+
         @f(extra='bad')
-        def nope(): pass
+        def nope():
+            pass
 
 
 def test_non_callable_userwrap_raises():
@@ -210,6 +223,7 @@ def test_non_callable_userwrap_raises():
 
 
 def test_decorator_metadata_preserved():
+
     @evn.make_decorator
     def dummy(func, args, kwargs):
         return func(*args, **kwargs)
@@ -219,17 +233,19 @@ def test_decorator_metadata_preserved():
         """This is a docstring."""
         return 7
 
-    assert my_func.__name__ == "my_func"
-    assert my_func.__doc__ == "This is a docstring."
+    assert my_func.__name__ == 'my_func'
+    assert my_func.__doc__ == 'This is a docstring.'
     assert isinstance(my_func, types.FunctionType)  # Still a function
 
 
 def test_decorator_on_instance_method():
+
     @evn.make_decorator(extra=1)
     def bump(func, args, kwargs, extra):
         return func(*args, **kwargs) + extra
 
     class Thing:
+
         @bump(extra=3)
         def do(self, x):
             return x
@@ -239,14 +255,19 @@ def test_decorator_on_instance_method():
 
 
 def test_decorator_on_class_entirely():
+
     @evn.make_decorator(suffix=1)
     def plus(func, args, kwargs, suffix):
         return func(*args, **kwargs) + suffix
 
     @plus(suffix=5)
     class Math:
-        def add(self, x, y): return x + y
-        def mul(self, x, y): return x * y
+
+        def add(self, x, y):
+            return x + y
+
+        def mul(self, x, y):
+            return x * y
 
     m = Math()
     assert m.add(1, 2) == 8
@@ -258,16 +279,19 @@ def test_classmethod_and_staticmethod_wrapping():
 
     @evn.make_decorator(tag='')
     def logcall(func, args, kwargs, tag):
-        calls.append(f"{tag}:{func.__name__}")
+        calls.append(f'{tag}:{func.__name__}')
         return func(*args, **kwargs)
 
     @logcall(tag='X')
     class Example:
+
         @classmethod
-        def cls_method(cls): return 'cls'
+        def cls_method(cls):
+            return 'cls'
 
         @staticmethod
-        def stat_method(): return 'stat'
+        def stat_method():
+            return 'stat'
 
     assert Example.cls_method() == 'cls'
     assert Example.stat_method() == 'stat'
@@ -275,20 +299,21 @@ def test_classmethod_and_staticmethod_wrapping():
 
 
 def test_nested_configuration_application():
+
     @evn.make_decorator(greeting='hi')
     def greeter(func, args, kwargs, greeting):
-        return f"{greeting}, {func(*args, **kwargs)}"
+        return f'{greeting}, {func(*args, **kwargs)}'
 
     @greeter
     def name():
-        return "Alice"
+        return 'Alice'
 
-    @greeter(greeting="hello")
+    @greeter(greeting='hello')
     def name2():
-        return "Bob"
+        return 'Bob'
 
-    assert name() == "hi, Alice"
-    assert name2() == "hello, Bob"
+    assert name() == 'hi, Alice'
+    assert name2() == 'hello, Bob'
 
 
 if __name__ == '__main__':

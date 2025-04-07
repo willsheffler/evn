@@ -23,11 +23,11 @@ Example:
 >>> class CLIdummy(CLI):
 ...     __log__ = []
 >>> CliLogger.clear(CLIdummy)
->>> CliLogger.log(CLIdummy, "started", event="boot")
+>>> CliLogger.log(CLIdummy, 'started', event='boot')
 >>> log = CliLogger.get_log(CLIdummy)
->>> log[0]["event"]
+>>> log[0]['event']
 'boot'
->>> log[0]["path"]
+>>> log[0]['path']
 '<exe> dummy'
 
 See Also:
@@ -37,27 +37,34 @@ See Also:
 from datetime import datetime, timezone
 import threading
 
+
 class CliLogger:
     """
     Centralized logger for CLI classes.
     Supports structured event logging and path resolution.
     """
+
     _logs = {}
     _lock = threading.Lock()
 
     @classmethod
-    def log(cls, target, message: str, *, event: str = None, data: dict = None):
+    def log(cls,
+            target,
+            message: str,
+            *,
+            event: str = None,
+            data: dict = None):
         path = target.get_command_path()
         if isinstance(message, dict):
             assert event is None and data is None
             entry = message
         else:
             entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "path": path,
-                "event": event or "log",
-                "message": message,
-                "data": data or {},
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'path': path,
+                'event': event or 'log',
+                'message': message,
+                'data': data or {},
             }
         with cls._lock:
             cls._logs.setdefault(path, []).append(entry)
@@ -96,13 +103,14 @@ class CliLogger:
         class _LogCtx:
 
             def __enter__(self_):
-                cls.log(target, f"begin {event}", event=event, data=data)
+                cls.log(target, f'begin {event}', event=event, data=data)
                 return self_
 
             def __exit__(self_, *exc):
-                cls.log(target, f"end {event}", event=event, data=data)
+                cls.log(target, f'end {event}', event=event, data=data)
 
         return _LogCtx()
+
 
 # Usage:
 # CliLogger.log(self, "message", event="something_happened", data={...})

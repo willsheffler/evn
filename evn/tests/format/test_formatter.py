@@ -1,12 +1,12 @@
 import difflib
 import pytest
-from evn.format import (MarkHandFormattedBlocksCpp, RuffFormat, CodeFormatter, UnmarkCpp,
-                                      AlignTokensCpp)
+from evn.format import MarkHandFormattedBlocksCpp, RuffFormat, CodeFormatter, UnmarkCpp, AlignTokensCpp
 
-splitter = "======== ↑ original ↓ formatted ========"
+splitter = '======== ↑ original ↓ formatted ========'
+
 
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 class Example:                    pass
@@ -63,8 +63,10 @@ def test_ruff_formatting(testcase):
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}).buffers["test_case.py"]["formatted"]
-    err = f"Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}"
+    formatted = formatter.run({
+        'test_case.py': original
+    }).buffers['test_case.py']['formatted']
+    err = f'Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}'
     # print('***************************************')
     # print(expected)
     # print('***************************************')
@@ -76,8 +78,9 @@ def test_ruff_formatting(testcase):
     # print('***************************************')
     assert formatted.strip() == expected.strip(), err
 
+
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 print('hello')
@@ -155,12 +158,16 @@ def test_mark_formatted_blocks(testcase):
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}).buffers["test_case.py"]["formatted"]
-    assert formatted.strip() == expected.strip(
-    ), f"Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}"
+    formatted = formatter.run({
+        'test_case.py': original
+    }).buffers['test_case.py']['formatted']
+    assert (
+        formatted.strip() == expected.strip()
+    ), f'Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}'
+
 
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 print('hello')
@@ -242,16 +249,21 @@ class Example:
 )
 def test_mark_blocks_ruff(testcase):
     """Test full formatting pipeline: AddFmtMarkers → RuffFormat → RemoveFmtMarkers → RemoveExtraBlankLines."""
-    formatter = CodeFormatter(actions=[MarkHandFormattedBlocksCpp(), RuffFormat()])
+    formatter = CodeFormatter(
+        actions=[MarkHandFormattedBlocksCpp(),
+                 RuffFormat()])
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}, debug=False).buffers["test_case.py"]["formatted"]
-    err = f"Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}"
+    formatted = formatter.run({
+        'test_case.py': original
+    }, debug=False).buffers['test_case.py']['formatted']
+    err = f'Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}'
     assert formatted.strip() == expected.strip(), err
 
+
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 print('hello')
@@ -340,12 +352,15 @@ def test_unmark(testcase):
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}, debug=False).buffers["test_case.py"]["formatted"]
-    err = f"Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}"
+    formatted = formatter.run({
+        'test_case.py': original
+    }, debug=False).buffers['test_case.py']['formatted']
+    err = f'Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}'
     assert formatted.strip() == expected.strip(), err
 
+
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 print('hello')
@@ -411,16 +426,21 @@ class Example:
 )
 def test_mark_blocks_ruff_unmark(testcase):
     """Test full formatting pipeline: AddFmtMarkers → RuffFormat → RemoveFmtMarkers → RemoveExtraBlankLines."""
-    formatter = CodeFormatter([MarkHandFormattedBlocksCpp(), RuffFormat(), UnmarkCpp()])
+    formatter = CodeFormatter(
+        [MarkHandFormattedBlocksCpp(),
+         RuffFormat(), UnmarkCpp()])
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}, debug=False).buffers["test_case.py"]["formatted"]
-    err = f"Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}"
+    formatted = formatter.run({
+        'test_case.py': original
+    }, debug=False).buffers['test_case.py']['formatted']
+    err = f'Formatting failed on:\n------------------- orig ------------------------\n{original}\n------------------------ Got:------------------------\n{formatted}\n------------------------Expected: ------------------------\n{expected}'
     assert formatted.strip() == expected.strip(), err
 
+
 @pytest.mark.parametrize(
-    "testcase",
+    'testcase',
     [
         """
 print('hello')
@@ -498,9 +518,13 @@ def test_cpp_align_tokens(testcase):
     original, expected = testcase.split(splitter)
     original = original.strip()
     expected = expected.strip()
-    formatted = formatter.run({"test_case.py": original}, debug=False).buffers["test_case.py"]["formatted"]
-    err = '\n'.join(difflib.ndiff(expected.splitlines(), formatted.splitlines()))
+    formatted = formatter.run({
+        'test_case.py': original
+    }, debug=False).buffers['test_case.py']['formatted']
+    err = '\n'.join(
+        difflib.ndiff(expected.splitlines(), formatted.splitlines()))
     assert formatted.strip() == expected.strip(), err
+
 
 if __name__ == '__main__':
     main()

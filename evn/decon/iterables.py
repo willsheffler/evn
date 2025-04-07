@@ -2,9 +2,11 @@ from typing import Sequence, Any
 import typing
 import operator
 import evn
+
 np = evn.lazyimport('numpy')
 
 T = typing.TypeVar('T')
+
 
 def nth(thing: evn.Iterable[T], n: int = 0) -> T:
     iterator = iter(thing)
@@ -15,7 +17,9 @@ def nth(thing: evn.Iterable[T], n: int = 0) -> T:
     except StopIteration:
         return None
 
+
 first = nth
+
 
 def head(thing: evn.Iterable[T], n=5, *, requireall=False, start=0) -> list[T]:
     iterator, result = iter(thing), []
@@ -25,19 +29,24 @@ def head(thing: evn.Iterable[T], n=5, *, requireall=False, start=0) -> list[T]:
         for _ in range(n):
             result.append(next(iterator))
     except StopIteration:
-        if requireall: return None
+        if requireall:
+            return None
     return result
+
 
 def order(seq: Sequence[Any], key=None) -> list[int]:
     return [a[1] for a in sorted(((s, i) for i, s in enumerate(seq)), key=key)]
 
+
 def reorder(seq: Sequence[T], order: Sequence[int]) -> Sequence[T]:
     return [seq[i] for i in order]
+
 
 def reorder_inplace(seq: list[Any], order: Sequence[int]) -> None:
     result = reorder(seq, order)
     for i, v in enumerate(result):
         seq[i] = v
+
 
 def reorderer(order: Sequence[int]) -> evn.Callable[[T], T]:
 
@@ -47,12 +56,15 @@ def reorderer(order: Sequence[int]) -> evn.Callable[[T], T]:
 
     return reorder_func
 
+
 def zipenum(*args):
     for i, z in enumerate(zip(*args)):
         yield i, *z
 
+
 def subsetenum(n_or_set):
-    if isinstance(n_or_set, int): n_or_set = range(n_or_set)
+    if isinstance(n_or_set, int):
+        n_or_set = range(n_or_set)
     input_set = set(n_or_set)
     tot = 0
     for size in range(len(input_set), 0, -1):
@@ -60,23 +72,36 @@ def subsetenum(n_or_set):
             yield tot, subset
             tot += 1
 
-def zipmaps(*args: dict[str, T], order='key', intersection=False) -> dict[str, tuple[T, ...]]:
-    if not args: raise ValueError('zipmaps requires at lest one argument')
-    if intersection: keys = evn.andreduce(set(map(str, a.keys())) for a in args)
-    else: keys = evn.decon.orreduce(set(map(str, a.keys())) for a in args)
-    if order == 'key': keys = sorted(keys)
-    if order == 'val': keys = sorted(keys, key=lambda k: args[0].get(k, evn.NA))
-    result = type(args[0])({k: tuple(a.get(k, evn.NA) for a in args) for k in keys})
+
+def zipmaps(*args: dict[str, T],
+            order='key',
+            intersection=False) -> dict[str, tuple[T, ...]]:
+    if not args:
+        raise ValueError('zipmaps requires at lest one argument')
+    if intersection:
+        keys = evn.andreduce(set(map(str, a.keys())) for a in args)
+    else:
+        keys = evn.decon.orreduce(set(map(str, a.keys())) for a in args)
+    if order == 'key':
+        keys = sorted(keys)
+    if order == 'val':
+        keys = sorted(keys, key=lambda k: args[0].get(k, evn.NA))
+    result = type(args[0])({
+        k: tuple(a.get(k, evn.NA) for a in args)
+        for k in keys
+    })
     return result
+
 
 def zipitems(*args, **kw):
     zipped = zipmaps(*args, **kw)
     for k, v in zipped.items():
         yield k, *v
 
+
 @evn.dc.dataclass
 class ContiguousTokens:
-    tokens: Sequence = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz"
+    tokens: Sequence = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz'
     idmap: dict = evn.dc.field(default_factory=dict)
     _offset: int = 0
 
@@ -86,16 +111,19 @@ class ContiguousTokens:
             self.idmap.clear()
         uniq = set(np.unique(ids))
         for cid in uniq - set(self.idmap):
-            self.idmap[str(cid)] = self.tokens[(len(self.idmap) - self._offset) % len(self.tokens)]
+            self.idmap[str(cid)] = self.tokens[(len(self.idmap) - self._offset)
+                                               % len(self.tokens)]
         newids = evn.copy(ids)
         for u in uniq:
             newids[ids == u] = self.idmap[u]
         # ic(self.idmap)
         return newids
 
+
 def contiguous(ids, reset: bool = False, tokens: Sequence['int|str'] = None):
     idmaker = ContiguousTokens(*([tokens] if tokens else []))
     return idmaker(ids, reset)
+
 
 def opreduce(op, iterable):
     """Reduces an iterable using a specified operator or function.
@@ -127,6 +155,8 @@ def opreduce(op, iterable):
         op = getattr(operator, op)
     return evn.ft.reduce(op, iterable)
 
+
 for op in 'add mul matmul or_ and_'.split():
     opname = op.strip('_')
-    globals()[f'{opname}reduce'] = evn.ft.partial(opreduce, getattr(operator, op))
+    globals()[f'{opname}reduce'] = evn.ft.partial(opreduce,
+                                                  getattr(operator, op))

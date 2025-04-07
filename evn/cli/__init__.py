@@ -24,11 +24,11 @@ Usage Example:
 
 >>> from evn.cli import CLI
 >>> class Hello(CLI):
-...     def greet(self, name: str = "world"):
-...         print(f"Hello, {name}")
+...     def greet(self, name: str = 'world'):
+...         print(f'Hello, {name}')
 >>> cli = Hello.__group__
 >>> from click.testing import CliRunner
->>> result = CliRunner().invoke(cli, ["greet", "--name", "Alice"])
+>>> result = CliRunner().invoke(cli, ['greet', '--name', 'Alice'])
 >>> result.output
 'Hello, Alice\\n'
 
