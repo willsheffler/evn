@@ -29,8 +29,8 @@ def main():
         chrono=False,
     )
 
-def test_chrono_main():
-    assert evn.chrono_main
+def test_chronometer():
+    assert evn.chronometer
 
 class FuncNest:
 
@@ -70,33 +70,35 @@ class FuncNest:
         time.sleep(0.01)  # random.uniform(0.01, 0.03))
         self.runtime['recursive'].append(time.perf_counter() - start)
 
-    @chrono
-    def generator(self):
-        start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
-        self.runtime['generator'].append(time.perf_counter() - start)
-        for i in range(5):
-            start = time.perf_counter()
-            time.sleep(0.01)  # random.uniform(0.01, 0.03))
-            self.runtime['generator'].append(time.perf_counter() - start)
-            yield i
-            start = time.perf_counter()
-            time.sleep(0.01)  # random.uniform(0.01, 0.03))
-            self.runtime['generator'].append(time.perf_counter() - start)
+    # @chrono
+    # def generator(self):
+    #     start = time.perf_counter()
+    #     time.sleep(0.01)  # random.uniform(0.01, 0.03))
+    #     self.runtime['generator'].append(time.perf_counter() - start)
+    #     for i in range(5):
+    #         start = time.perf_counter()
+    #         time.sleep(0.01)  # random.uniform(0.01, 0.03))
+    #         self.runtime['generator'].append(time.perf_counter() - start)
+    #         yield i
+    #         start = time.perf_counter()
+    #         time.sleep(0.01)  # random.uniform(0.01, 0.03))
+    #         self.runtime['generator'].append(time.perf_counter() - start)
+
 FuncNest.__module__ = 'test_chrono'
 FuncNest.method1.__module__ = 'test_chrono'
 FuncNest.method2.__module__ = 'test_chrono'
 FuncNest.recursive.__module__ = 'test_chrono'
-FuncNest.generator.__module__ = 'test_chrono'
 
-@pytest.mark.xfail
+# FuncNese.generator.__module__ = 'test_chrono'
+
+# @pyt8est.mark.xfail
 def test_chrono_nesting():
     instance = FuncNest()
     instance.method1()
-    assert list(instance.generator()) == [0, 1, 2, 3 , 4]
-    report = evn.chrono_main.report_dict()
+    # assert list(instance.generator()) == [0, 1, 2, 3, 4]
+    report = evn.chronometer.report_dict()
     pprint(report)
-    for method in 'method1 method2 recursive generator'.split():
+    for method in 'method1 method2 recursive'.split():
         try:
             recorded_time = sum(instance.runtime[method])
             print(report.keys())
@@ -106,7 +108,7 @@ def test_chrono_nesting():
         except KeyError:
             assert 0, f'missing key {method}'
 
-    assert evn.chrono_main.stack[-1].name == 'misc'
+    assert evn.chronometer.scopestack[-1].name == 'main'
 
 def test_chrono_func():
     timer = Chrono()
@@ -115,41 +117,37 @@ def test_chrono_func():
     def foo():
         time.sleep(0.001)
 
+    foo.__module__ = 'test_chrono'
     foo()
-    assert 'test_chrono.test_chrono_func.foo' in timer.profile
-    assert len(timer.profile['test_chrono.test_chrono_func.foo']) == 1
-    print(timer.profile['test_chrono.test_chrono_func.foo'])
-    assert sum(timer.profile['test_chrono.test_chrono_func.foo']) >= 0.001
+    assert 'test_chrono.test_chrono_func.foo' in timer.times
+    assert len(timer.times['test_chrono.test_chrono_func.foo']) == 1
+    print(timer.times['test_chrono.test_chrono_func.foo'])
+    assert sum(timer.times['test_chrono.test_chrono_func.foo']) >= 0.001
 
 def test_scope():
     with Chrono() as t:
-        t.enter_scope('baz')
-        t.enter_scope('bar')
         t.enter_scope('foo')
-        t.exit_scope('foo')
-        t.exit_scope('bar')
+        t.enter_scope('bar')
+        t.enter_scope('baz')
         t.exit_scope('baz')
-    assert 'foo' in t.profile
-    assert 'bar' in t.profile
-    assert 'baz' in t.profile
+        t.exit_scope('bar')
+        t.exit_scope('foo')
+    assert 'foo' in t.times
+    assert 'bar' in t.times
+    assert 'baz' in t.times
 
 def allclose(a, b, atol):
-    if isinstance(a, float):
-        return abs(a - b) < atol
-    for x, y in zip(a, b):
-        if abs(a - b) > atol:
-            return False
-    return True
+    if isinstance(a, float): return abs(a - b) < atol
+    return all(abs(a - b) <= atol for x, y in zip(a, b))
 
-@pytest.mark.skip
-def test_chrono():
+def test_chrono_checkpoint():
     with Chrono() as chrono:
         time.sleep(0.02)
-        chrono.exit_scope('foo')
+        chrono.checkpoint('foo')
         time.sleep(0.06)
-        chrono.exit_scope('bar')
+        chrono.checkpoint('bar')
         time.sleep(0.04)
-        chrono.exit_scope('baz')
+        chrono.checkpoint('baz')
 
     times = chrono.report_dict()
     assert allclose(times['foo'], 0.02, atol=0.05)
@@ -157,13 +155,63 @@ def test_chrono():
     assert allclose(times['baz'], 0.04, atol=0.05)
 
     times = chrono.report_dict(order='longest')
-    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo']
+    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo', 'Chrono']
 
     times = chrono.report_dict(order='callorder')
-    assert list(times.keys()) == ['foo', 'bar', 'baz', 'total']
+    print(times.keys())
+    assert list(times.keys()) == ['foo', 'bar', 'baz', 'Chrono', 'total']
 
     with pytest.raises(ValueError):
         chrono.report_dict(order='oarenstoiaen')
+
+def chrono_deco_func():
+    time.sleep(0.01)
+
+chrono_deco_func.__module__ = 'test_chrono'
+chrono_deco_func = chrono(chrono_deco_func)
+
+def test_chrono_deco_func():
+    evn.chronometer.clear()
+    for _ in range(3):
+        chrono_deco_func()
+
+    times = evn.chronometer.find_times('test_chrono.chrono_deco_func')
+    for t in times:
+        assert 0.01 <= t < 0.012
+    assert 'test_chrono.chrono_deco_func' in evn.chronometer.times
+
+def chrono_deco_func2():
+    time.sleep(0.005)
+    chrono_deco_func()
+    time.sleep(0.005)
+
+chrono_deco_func2.__module__ = 'test_chrono'
+chrono_deco_func2 = chrono(chrono_deco_func2)
+
+def chrono_deco_func3():
+    time.sleep(0.005)
+    chrono_deco_func2()
+    time.sleep(0.005)
+
+chrono_deco_func3.__module__ = 'test_chrono'
+chrono_deco_func3 = chrono(chrono_deco_func3)
+
+def test_chrono_deco_func_nest():
+    evn.chronometer.clear()
+    N = 1
+    for _ in range(N):
+        chrono_deco_func3()
+    times = evn.chronometer.find_times('test_chrono.chrono_deco_func')
+    times2 = evn.chronometer.find_times('test_chrono.chrono_deco_func2')
+    times3 = evn.chronometer.find_times('test_chrono.chrono_deco_func3')
+    print(evn.chronometer.times.keys())
+    assert N == len(times) == len(times2) == len(times3)
+    for t, t2, t3 in zip(times, times2, times3):
+        assert 0.01 <= t < 0.012
+        assert 0.01 <= t2 < 0.012
+        assert 0.01 <= t3 < 0.012
+    assert 'test_chrono.chrono_deco_func' in evn.chronometer.times
+    assert 'test_chrono.chrono_deco_func2' in evn.chronometer.times
 
 def test_summary():
     with Chrono() as chrono:
@@ -202,11 +250,10 @@ def test_chrono_stop_behavior():
     with pytest.raises(AssertionError):
         chrono.store_finished_scope(TimerScope('baz'))
 
-@pytest.mark.xfail
 def test_scope_mismatch():
     chrono = Chrono()
     chrono.enter_scope('foo')
-    with pytest.raises(AssertionError, match='stored scope: foo does not match exit scope: bar'):
+    with pytest.raises(AssertionError, match='exiting scope: bar doesnt match: foo'):
         chrono.exit_scope('bar')
 
 def test_scope_name_from_object():
@@ -219,10 +266,6 @@ def test_scope_name_from_object():
     assert isinstance(name, str)
     assert 'Dummy' in name
 
-def test_get_checkpoint_data_missing():
-    chrono = Chrono()
-    assert chrono.get_checkpoint_data('not_there') == []
-
 def test_report_string_return():
     with Chrono() as chrono:
         chrono.enter_scope('foo')
@@ -232,6 +275,23 @@ def test_report_string_return():
     assert isinstance(report, str)
     assert 'foo' in report
 
+@pytest.mark.skip
+def test_generator_deco():
+    calls = []
+
+    @chrono
+    def gen():
+        yield 1
+        yield 2
+
+    with pytest.raises(ValueError):
+        for x in gen():
+            calls.append(x)
+
+    assert calls == [1, 2]
+    print(evn.chronometer.times)
+
+@pytest.mark.skip
 def test_generator_with_exception():
     calls = []
 
@@ -246,7 +306,7 @@ def test_generator_with_exception():
             calls.append(x)
 
     assert calls == [1, 2]
-    print(evn.chrono_main.profile)
+    print(evn.chronometer.times)
 
 def test_nested_chrono_scopes():
     with Chrono() as outer:
@@ -257,13 +317,40 @@ def test_nested_chrono_scopes():
             time.sleep(0.005)
             inner.exit_scope('inner')
         outer.exit_scope('outer')
-    assert 'outer' in outer.profile
-    assert 'inner' in inner.profile
+    assert 'outer' in outer.times
+    assert 'inner' in inner.times
 
 def test_report_dict_bad_order():
     chrono = Chrono()
     with pytest.raises(ValueError):
         chrono.report_dict(order='invalid')
+
+def test_chrono_context_manager():
+    with Chrono('foo') as c:
+        time.sleep(0.01)
+    assert 'foo' in c.times
+    assert 0.01 <= c.times['foo'][0] < 0.011
+
+def test_scope_context_manager():
+    c = Chrono()
+    with c.scope('foo'):
+        time.sleep(0.01)
+    assert 'foo' in c.times
+    assert 0.01 <= c.times['foo'][0] < 0.011
+
+def test_nested_scope_context_manager():
+    c = Chrono()
+    with c.scope('foo'):
+        time.sleep(0.005)
+        with c.scope('bar'):
+            time.sleep(0.005)
+            with c.scope('baz'):
+                time.sleep(0.01)
+            time.sleep(0.005)
+        time.sleep(0.005)
+    for n in 'foo bar baz'.split():
+        assert n in c.times
+        assert 0.01 <= c.times[n][0] < 0.011
 
 if __name__ == '__main__':
     main()

@@ -82,12 +82,14 @@ def quicktest(namespace, config=evn.Bunch(), **kw):
 
 def print_result(config, result, t_total):
     if result.passed:
-        timing = f'{t_total*1000:.3f}'
-        print(f'PASSED {len(result.passed)} tests in {timing}')
+        print(f'PASSED {len(result.passed)} tests in {t_total:.3f} seconds')
     result.passed.sort(key=result.runtime, reverse=True)
+    npassprinted = 0
     for label, tests in result.items():
-        if label == 'passed' and not config.verbose and len(result.passed) > 7: continue
         for test in tests:
+            if label == 'passed' and not config.verbose and npassprinted > 9 and result._runtime[test] < 100:
+                npassprinted += 1
+                continue
             print(f'{label.upper():9} {result._runtime[test]*1000:7.3f} ms {test}', flush=True)
 
 def test_func_ok(name, obj):

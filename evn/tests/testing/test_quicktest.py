@@ -5,21 +5,21 @@ import evn
 import evn.testing as et
 
 def main():
-    test_TestConfig_defaults()
-    test_TestConfig_detect_fixtures()
-    test_TestResult_runtime_and_items()
-    test__test_func_ok()
-    test__test_class_ok()
-    test_collect_and_run_tests()
-    test_main_and_print_result()
-    test_dryrun_mode()
-    test_nocapture_mode()
-    test_xfail_detection()
-    test_skip_detection()
-    test_setUp_tearDown_called()
-    test_parametrized_test_handling()
+    # test_TestConfig_defaults()
+    # test_TestConfig_detect_fixtures()
+    # test_TestResult_runtime_and_items()
+    # test__test_func_ok()
+    # test__test_class_ok()
+    # test_collect_and_run_tests()
+    # test_main_and_print_result()
+    # test_dryrun_mode()
+    # test_nocapture_mode()
+    # test_xfail_detection()
+    # test_skip_detection()
+    # test_setUp_tearDown_called()
+    # test_parametrized_test_handling()
 
-    # evn.testing.quicktest(globals())
+    evn.testing.quicktest(globals())
 
 def test_TestConfig_defaults():
     cfg = et.TestConfig()
@@ -100,6 +100,7 @@ def test_main_and_print_result():
         ns = {'test_foo': test_foo, '__file__': 'dummy.py'}
         res = et.quicktest(ns, verbose=True, check_xfail=True)
         captured = capsys.readouterr()
+        print(captured.out)
         assert 'PASSED' in captured.out
         assert 'test_foo' in captured.out
         assert ran['yes']

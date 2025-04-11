@@ -11,7 +11,7 @@ if not (projroot / 'pyproject.toml').exists:
     projroot = None
     evn_installed = True
 show_trace = False
-chrono_main: 'evn._prelude.chrono.Chrono' = None  #type:ignore #noqa
+chronometer: 'evn._prelude.chrono.Chrono' = None  #type:ignore #noqa
 
 def evn_init_checkpoint(name):
     global _start, _timings
