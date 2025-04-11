@@ -37,12 +37,13 @@ repos:
       - id: commitizen
         stages: [commit-msg]
         language_version: python3.12
+
   - repo: https://github.com/christophmeissner/pytest-pre-commit
     rev: 1.0.0
     hooks:
       - id: pytest
         additional_dependencies: ['assertpy', 'click', 'icecream', 'multipledispatch',
           'PrettyPrintTree', 'pyyaml', 'rapidfuzz', 'rich', 'ruff',
-          'typing_extensions; python_version < "3.10"', 'wrapt','hypothesis']
+          'typing_extensions; python_version < "3.10"', 'wrapt','hypothesis', 'ninja_import', 'tomli']
         pass_filenames: false
         always_run: true

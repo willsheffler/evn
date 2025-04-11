@@ -2,7 +2,7 @@ import evn
 
 
 def main():
-    evn.testing.maintest(namespace=globals())
+    evn.testing.quicktest(namespace=globals())
 
 
 def count():

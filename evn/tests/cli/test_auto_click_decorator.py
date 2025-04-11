@@ -11,8 +11,8 @@ from evn.cli.basic_click_type_handlers import BasicStringHandler
 
 
 class MetadataIgnoreHandler(ClickTypeHandler):
-    supported_types = {int: MetadataPolicy.REQUIRED}
-    _priority_bonus = 0
+    __supported_types__ = {int: MetadataPolicy.REQUIRED}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         return value
@@ -145,7 +145,7 @@ def test_handler_skipped_without_required_metadata():
 
     class DummyHandler(ClickTypeHandler):
         __test__ = False
-        supported_types = {int: MetadataPolicy.REQUIRED}
+        __supported_types__ = {int: MetadataPolicy.REQUIRED}
 
         def convert(self, value, param, ctx):
             return int(value)
@@ -164,16 +164,16 @@ def test_handler_priority_affects_resolution():
 
     class LowPriority(ClickTypeHandler):
         __test__ = False
-        supported_types = {int: MetadataPolicy.REQUIRED}
-        _priority_bonus = 1
+        __supported_types__ = {int: MetadataPolicy.REQUIRED}
+        __priority_bonus__ = 1
 
         def convert(self, value, param, ctx):
             return 1
 
     class HighPriority(ClickTypeHandler):
         __test__ = False
-        supported_types = {int: MetadataPolicy.REQUIRED}
-        _priority_bonus = 10
+        __supported_types__ = {int: MetadataPolicy.REQUIRED}
+        __priority_bonus__ = 10
 
         def convert(self, value, param, ctx):
             return 2

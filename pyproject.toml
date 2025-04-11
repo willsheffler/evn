@@ -8,21 +8,28 @@ version = '0.1.0'
 requires-python = '>=3.9'
 dependencies = [
     'assertpy',
-    'click',
+    'click>=8.0',
     'icecream',
+    'json5',
+    'ninja_import',
     'multipledispatch',
     'PrettyPrintTree',
     'pyyaml',
     'rapidfuzz',
     'rich',
     'ruff',
+    'tomli',
     'typing_extensions; python_version < "3.10"',
     'wrapt',
 ]
 
 [project.optional-dependencies]
 dev = [
+    'nox',
+    'tomlkit',
+    'doit>=0.36.0',
     'hypothesis',
+    'jsonschema',
     'pytest',
     'pytest-xdist',
     'pytest-benchmark',
@@ -45,7 +52,7 @@ markers = [
 
 
 [tool.ruff]
-include = ['evn']
+# include = ['evn']
 exclude = ["dodo.py", 'noxfile.py']
 lint.ignore = [
    'E731', #  [ ] Do not assign a `lambda` expression, use a `def`
@@ -63,16 +70,21 @@ format.quote-style = 'single'
 format.indent-style = 'space'
 format.docstring-code-format = true
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F403", "F401"]
+"__init__.py" = ["F403", "F401", "F405"]
 "**/test_*.py" = ["E501", "F841", "F403", 'F401', "F405", "F821", "F841", "F811"]
 
 [tool.pyright]
+exclude = [
+  "build",
+  "dist",
+  "**/__pycache__",
+  "evn/tests",
+]
+ignore = ["*.pyi"]
+include = ["evn"]
 venvPath = '/home/sheffler/sw/MambaForge/envs'
-venv = 'rfdsym312'
-# venvPath = /home/sheffler/rfd/lib/evn
-# venv = .venv
+venv = 'evn'
 # defineConstant = { DEBUG = true }
-# typeCheckingMode = enhanced
 typeCheckingMode = 'standard'
 reportMissingImports = true
 reportMissingTypeStubs = false

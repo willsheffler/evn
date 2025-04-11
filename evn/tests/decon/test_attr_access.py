@@ -7,7 +7,7 @@ import evn
 
 
 def main():
-    evn.tests.maintest(namespace=globals())
+    evn.testing.quicktest(namespace=globals())
 
 
 def test_iterize():

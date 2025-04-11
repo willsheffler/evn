@@ -18,7 +18,7 @@ config_test = Bunch(
 
 
 def main():
-    evn.testing.maintest(
+    evn.testing.quicktest(
         namespace=globals(),
         config=config_test,
         verbose=1,

@@ -6,8 +6,8 @@ from evn.cli.click_type_handler import ClickTypeHandler, MetadataPolicy
 
 
 class BasicStringHandler(ClickTypeHandler):
-    supported_types = {str: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {str: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -19,8 +19,8 @@ class BasicStringHandler(ClickTypeHandler):
 
 
 class BasicBoolHandler(ClickTypeHandler):
-    supported_types = {bool: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {bool: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         val = self.preprocess_value(value)
@@ -43,8 +43,8 @@ class BasicBoolHandler(ClickTypeHandler):
 
 
 class BasicUUIDHandler(ClickTypeHandler):
-    supported_types = {uuid.UUID: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {uuid.UUID: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -56,8 +56,8 @@ class BasicUUIDHandler(ClickTypeHandler):
 
 
 class BasicPathHandler(ClickTypeHandler):
-    supported_types = {pathlib.Path: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {pathlib.Path: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -70,8 +70,8 @@ class BasicPathHandler(ClickTypeHandler):
 
 
 class BasicChoiceHandler(ClickTypeHandler):
-    supported_types = {click.Choice: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {click.Choice: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -90,8 +90,8 @@ class BasicChoiceHandler(ClickTypeHandler):
 
 
 class BasicIntRangeHandler(ClickTypeHandler):
-    supported_types = {click.IntRange: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {click.IntRange: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -111,8 +111,8 @@ class BasicIntRangeHandler(ClickTypeHandler):
 
 
 class BasicFloatRangeHandler(ClickTypeHandler):
-    supported_types = {click.FloatRange: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {click.FloatRange: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:
@@ -132,8 +132,8 @@ class BasicFloatRangeHandler(ClickTypeHandler):
 
 
 class BasicDateTimeHandler(ClickTypeHandler):
-    supported_types = {click.DateTime: MetadataPolicy.FORBID}
-    _priority_bonus = 0
+    __supported_types__ = {click.DateTime: MetadataPolicy.FORBID}
+    __priority_bonus__ = 0
 
     def convert(self, value, param, ctx):
         try:

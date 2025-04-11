@@ -1,6 +1,7 @@
 import sys
 import dataclasses as dc
 
+asdict = dc.asdict
 # from typing import final
 final = lambda x: x
 
@@ -13,7 +14,6 @@ else:
 
 mutablestruct = lambda cls: final(dc.dataclass()(cls))
 basemutablestruct = dc.dataclass()
-
 
 def field(dfac=dc.MISSING, *a, **kw):
     if dfac and 'default_factory' in kw:

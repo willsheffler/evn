@@ -10,7 +10,7 @@ It simplifies writing decorators that need to handle:
 
 Example:
     >>> @make_decorator(prefix='* ')
-    ... def printer(func, args, kwargs, prefix):
+    ... def printer(func, *args, prefix='', **kwargs):
     ...     print(prefix + func.__name__)
     ...     return func(*args, **kwargs)
 
@@ -25,7 +25,7 @@ Example:
 Basic usage:
 
     >>> @make_decorator
-    ... def trace(func, args, kwargs):
+    ... def trace(func, *args, **kwargs):
     ...     print('Calling', func.__name__)
     ...     return func(*args, **kwargs)
 
@@ -40,7 +40,7 @@ Basic usage:
 Using default config:
 
     >>> @make_decorator(msg='start:')
-    ... def tagged(func, args, kwargs, msg):
+    ... def tagged(func, *args, msg, **kwargs):
     ...     return msg + func(*args, **kwargs)
 
     >>> @tagged
@@ -62,7 +62,7 @@ Overriding decorator config:
 Decorating a method:
 
     >>> @make_decorator(extra=10)
-    ... def add_extra(func, args, kwargs, extra):
+    ... def add_extra(func, *args, extra, **kwargs):
     ...     return func(*args, **kwargs) + extra
 
     >>> class Math:
@@ -93,9 +93,9 @@ Decorating a class:
 import inspect
 import functools
 import wrapt
+import typing as t
 
-
-def make_decorator(userwrap=None, strict=True, **decokw):
+def make_decorator(userwrap: t.Callable | None = None, strict=True, **decokw):
     """
     A decorator factory that simplifies writing configurable function, method, and class decorators.
 
@@ -128,19 +128,13 @@ def make_decorator(userwrap=None, strict=True, **decokw):
         return functools.partial(make_decorator, **decokw)
 
     if not callable(userwrap):
-        raise TypeError(
-            f'make_decorator first arg {type(userwrap)} is not callable')
+        raise TypeError(f'make_decorator first arg {type(userwrap)} is not callable')
 
-    def decorator(userwrapped=None,
-                  *,
-                  strict=strict,
-                  decokw=decokw,
-                  **decokw2):
+    def decorator(userwrapped=None, *, strict=strict, decokwie=decokw, **decokw2) -> t.Callable:
         if userwrapped is None:
             if strict and not decokw2.keys() <= decokw.keys():
                 raise TypeError(
-                    f"Decorator {userwrap.__name__} doesn't accept args: {decokw2.keys() - decokw.keys()}"
-                )
+                    f"Decorator {userwrap.__name__} doesn't accept args: {decokw2.keys() - decokw.keys()}")
             return functools.partial(decorator, **(decokw | decokw2))
 
         all_kwargs = decokw | decokw2
@@ -165,10 +159,16 @@ def make_decorator(userwrap=None, strict=True, **decokw):
             return cls
 
         # Otherwise, this is a normal function or method
+        # the default args are for the benefit of the type checker; never used
         @wrapt.decorator()
-        def wrapper(wrapped, instance, args, kwargs):
+        def wrapper(
+            wrapped: t.Callable,
+            instance=None,
+            args=[],
+            kwargs={},
+        ) -> t.Callable:
             kwargs = {k: v for k, v in kwargs.items() if k not in all_kwargs}
-            return userwrap(wrapped, args, kwargs, **all_kwargs)
+            return userwrap(wrapped, *args, **kwargs, **all_kwargs)
 
         return wrapper(userwrapped)
 

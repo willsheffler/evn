@@ -12,7 +12,7 @@ config_test = evn.Bunch(
 
 
 def main():
-    evn.tests.maintest(
+    evn.testing.quicktest(
         namespace=globals(),
         config=config_test,
         verbose=1,

@@ -7,14 +7,14 @@ import typing as t
 import evn
 
 import enum
-import pprint
 import evn.tree
-
+from pprint import pprint
 
 class Format(str, enum.Enum):
     TREE = 'tree'
     FOREST = 'forest'
     FANCY = 'fancy'
+    FANCYHORIZ = 'fancyhoriz'
     SPIDER = 'spider'
     PPRINT = 'pprint'
     JSON = 'json'
@@ -25,37 +25,93 @@ class Format(str, enum.Enum):
 @evn.dispatch(dict)
 def show_impl(dict_, format='forest', **kw):
     dict_ = evn.tree.sanitize(dict_)
-    if not any(isinstance(d, (dict, list)) for d in dict_):
-        pprint.pprint(dict_)
+
+    if not any(isinstance(d, (dict, list)) for d in dict_.values()):
+        pprint(dict_)
         return
+
     try:
         fmt = Format(format)
     except ValueError as e:
         print(f"⚠️ Invalid format '{format}': {e}", flush=True)
         return
-    if fmt is Format.SPIDER:
-        evn.tree.print_spider_tree(dict_, **kw)
-    elif fmt is Format.FANCY:
-        evn.tree.print_spider_tree(dict_, mirror=False, **kw)
-    elif fmt is Format.PPRINT:
-        pprint.pprint(dict_)
-    elif fmt is Format.TREE:
-        evn.tree.print_tree(dict_, max_width=1, **kw)
-    elif fmt is Format.FOREST:
-        evn.tree.print_tree(dict_, **kw)
-    elif fmt is Format.JSON:
-        import json
 
-        print(json.dumps(dict_, indent=2))
-    elif fmt is Format.YAML:
-        import yaml
+    # Define a mapping from Format to callable
+    format_handlers = {
+        Format.SPIDER: lambda: evn.tree.print_spider_tree(dict_, **kw),
+        Format.FOREST: lambda: evn.tree.print_tree(dict_, **kw),
+        Format.FANCY: lambda: evn.tree.print_spider_tree(dict_, mirror=False, **kw),
+        Format.FANCYHORIZ: lambda: evn.tree.print_spider_tree(dict_, mirror=False, orient='horiz', **kw),
+        Format.TREE: lambda: evn.tree.print_tree(dict_, max_width=1, **kw),
+        Format.JSON: lambda: print(__import__('json5').dumps(dict_, indent=2)),
+        Format.YAML: lambda: print(__import__('yaml').dump(evn.unbunchify(dict_))),
+        Format.RICH: lambda: __import__('rich').print(evn.tree.rich_tree(dict_, **kw)),
+        Format.PPRINT: lambda: pprint(dict_),
+    }
 
-        print(yaml.dump(evn.unbunchify(dict_)))
-    elif fmt is Format.RICH:
-        import rich
+    # Try the requested format first, then fall back to others
+    formats_to_try = [fmt] + [f for f in Format if f != fmt]
 
-        tree = evn.tree.rich_tree(dict_, **kw)
-        rich.print(tree)
+    for f in formats_to_try:
+        handler = format_handlers.get(f)
+        try:
+            handler()
+            break
+        except evn.tree.TreeFormatError:
+            print(f'tree_format failed {f}, continuing...', flush=True)
+            continue
+        except Exception as e:
+            print(f"⚠️ Error in format '{f.value}': {e}", flush=True)
+            break
+
+
+# class Format(str, enum.Enum):
+#     TREE = 'tree'
+#     FOREST = 'forest'
+#     FANCY = 'fancy'
+#     FANCYHORIZ = 'fancyhoriz'
+#     SPIDER = 'spider'
+#     PPRINT = 'pprint'
+#     JSON = 'json'
+#     YAML = 'yaml'
+#     RICH = 'rich'
+
+
+# @evn.dispatch(dict)
+# def show_impl(dict_, format='forest', **kw):
+#     dict_ = evn.tree.sanitize(dict_)
+#     if not any(isinstance(d, (dict, list)) for d in dict_.values()):
+#         import pprint
+#         pprint.pprint(dict_)
+#         return
+#     try:
+#         fmt = Format(format)
+#     except ValueError as e:
+#         print(f"⚠️ Invalid format '{format}': {e}", flush=True)
+#         return
+#     if fmt is Format.SPIDER:
+#         evn.tree.print_spider_tree(dict_, **kw)
+#     elif fmt is Format.FOREST:
+#         evn.tree.print_tree(dict_, **kw)
+#     elif fmt is Format.FANCY:
+#         evn.tree.print_spider_tree(dict_, mirror=False, **kw)
+#     elif fmt is Format.FANCYHORIZ:
+#         evn.tree.print_spider_tree(dict_, mirror=False, orient='horiz', **kw)
+#     elif fmt is Format.TREE:
+#         evn.tree.print_tree(dict_, max_width=1, **kw)
+#     elif fmt is Format.JSON:
+#         import json5 as json
+#         print(json.dumps(dict_, indent=2))
+#     elif fmt is Format.YAML:
+#         import yaml
+#         print(yaml.dump(evn.unbunchify(dict_)))
+#     elif fmt is Format.RICH:
+#         import rich
+#         tree = evn.tree.rich_tree(dict_, **kw)
+#         rich.print(tree)
+#     elif fmt is Format.PPRINT:
+#         import pprint
+#         pprint.pprint(dict_)
 
 
 class DiffMode(str, Enum):

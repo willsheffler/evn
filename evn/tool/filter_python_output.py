@@ -1,15 +1,30 @@
-from collections import defaultdict
 import os
 import re
-import evn
 
-re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
-re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
-re_null = r'a^'  # never matches
+def main():
+    print('filter_python_output main')
+    import sys
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('inputfiles', type=str, nargs='+')
+    parser.add_argument('-m', '--minlines', type=int, default=0)
+    parser.add_argument('-p', '--preset', type=str, default='boilerplate')
+    parser.add_argument('-q', '--quiet', action='store_true')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    args = parser.parse_args(sys.argv[1:]).__dict__
+    for fname in args['inputfiles']:
+        os.rename(fname, f'{fname}.orig')
+        with open(f'{fname}.orig', 'r') as inp:
+            text = inp.read()
+        newtext = filter_python_output(text, **args)
+        with open(fname, 'w') as out:
+            out.write(newtext)
+        print(f'file: {fname}, lines {len(text.splitlines())} -> {len(newtext.splitlines())}')
+
 presets = dict(
     unittest=dict(
         refile=
-        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py'
+        (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py'
          ),
         refunc=
         (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
@@ -18,16 +33,16 @@ presets = dict(
     ),
     boilerplate=dict(
         refile=
-        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|evn/dev/inspect.py'
+        (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|evn/dev/inspect.py'
          ),
         refunc=
-        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
+        (r'|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
          ),
         minlines=30,
     ),
     aggressive=dict(
         refile=
-        (r'maintest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|<module>|evn/contexts.py|multipledispatch/dispatcher.py|evn/dev/inspect.py|meta/kwcall.py'
+        (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|<module>|evn/contexts.py|multipledispatch/dispatcher.py|evn/dev/inspect.py|meta/kwcall.py'
          ),
         refunc=
         (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall|main|kwcall'
@@ -36,6 +51,11 @@ presets = dict(
     ),
 )
 
+re_blank = re.compile(r'(?:^[ \t]*\n){2,}', re.MULTILINE)
+re_file_alt = re.compile(r'^E?\s*(.+?\.py):([0-9]+): .*')
+re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
+re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
+re_null = r'a^'  # never matches
 
 def filter_python_output(
     text,
@@ -43,7 +63,7 @@ def filter_python_output(
     re_file=re_null,
     re_func=re_null,
     preset='boilerplate',
-    minlines=None,
+    minlines=-1,
     filter_numpy_version_nonsense=True,
     keep_blank_lines=False,
     arrows=True,
@@ -51,62 +71,47 @@ def filter_python_output(
 ):
     preset = presets[preset]
     # if entrypoint == 'codetool': return text
-    minlines = minlines or preset['minlines']
-    if preset and re_file == re_null:
-        re_file = preset['refile']
-    if preset and re_func == re_null:
-        re_func = preset['refunc']
-    if isinstance(re_file, str):
-        re_file = re.compile(re_file)
-    if isinstance(re_func, str):
-        re_func = re.compile(re_func)
+    if minlines < 0: minlines = preset['minlines']
+    if preset and re_file == re_null: re_file = preset['refile']
+    if preset and re_func == re_null: re_func = preset['refunc']
+    if isinstance(re_file, str): re_file = re.compile(re_file)
+    if isinstance(re_func, str): re_func = re.compile(re_func)
+    if text.count(os.linesep) < minlines: return text
+    if filter_numpy_version_nonsense:
+        text = _filter_numpy_version_nonsense(text)
+    if not keep_blank_lines:
+        text = re_blank.sub(os.linesep * 2, text)
+
+    skipped = []
     result = []
     file, _lineno, func, block = None, None, None, None
-    skipped = []
-    lines = text.splitlines()
-    if len(lines) < minlines:
-        return text
-    for line in lines:
-        line = _strip_line_extra_whitespace(line)
-        if not line.strip() and not keep_blank_lines:
-            continue
+    for line in text.splitlines():
+        line = strip_line_extra_whitespace(line)
         if m := re_block.match(line):
-            _finish_block(preset, arrows, block, file, func, re_file, re_func,
-                          result, skipped)
+            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped)
             file, _linene, func, block = *m.groups(), [line]
         elif m := re_end.match(line):
-            _finish_block(preset,
-                          arrows,
-                          block,
-                          file,
-                          func,
-                          re_file,
-                          re_func,
-                          result,
-                          skipped,
-                          keep=True)
+            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=True)
             file, _lineno, func, block = None, None, None, None
             result.append(line)
         elif block:
             block.append(line)
         else:
+            if m := re_file_alt.match(line):
+                line = transform_fileref_to_python_format(line, m)
             result.append(line)
-    text = os.linesep.join(result) + os.linesep
-    if filter_numpy_version_nonsense:
-        text = _filter_numpy_version_nonsense(text)
-    return text
+    if result[-1]: result.append('')
+    new = os.linesep.join(result)
+    return new
 
+def transform_fileref_to_python_format(line, match):
+    """
+    '  File "/home/sheffler/evn/evn/tests/_prelude/test_chrono.py", line 96, ...'
+    """
+    match = match or re_file_alt.match(line)
+    return f'  File "{match.group(1)}", line {match.group(2)}, ...'
 
-def _finish_block(preset,
-                  arrows,
-                  block,
-                  file,
-                  func,
-                  re_file,
-                  re_func,
-                  result,
-                  skipped,
-                  keep=False):
+def _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=False):
     if block:
         filematch = re_file.search(file)
         funcmatch = re_func.search(func)
@@ -120,16 +125,13 @@ def _finish_block(preset,
                 skipped.clear()
             result.extend(block)
 
-
-def _strip_line_extra_whitespace(line):
+def strip_line_extra_whitespace(line):
     if not line[:60].strip():
         return line.strip()
     return line.rstrip()
 
-
 # def _strip_text_extra_whitespace(text):
 # return re.sub(r'\n\n', os.linesep, text, re.MULTILINE)
-
 
 def _filter_numpy_version_nonsense(text):
     text = text.replace(
@@ -173,7 +175,6 @@ Traceback""",
     )
     return text
 
-
 """Traceback (most recent call last):
   File "example.py", line 10, in <module>
     1/0
@@ -181,14 +182,7 @@ ZeroDivisionError: division by zero
 foof
 ISNR"""
 
-
 def analyze_python_errors_log(text):
-    # traceback_pattern = re.compile(r'Traceback \(most recent call last\):.*?\n[A-Za-z]+?Error:.*?$', re.DOTALL)
-    traceback_pattern = re.compile(
-        r'Traceback \(most recent call last\):.*?(?=\nTraceback |\Z)',
-        re.DOTALL)
-    file_line_pattern = re.compile(r'\n\s*File "(.*?\.py)", line (\d+), in ')
-    error_pattern = re.compile(r'\n\s*[A-Za-z_0-9]+Error: .*')
     """Analyze Python error logs and create a report of unique stack traces.
 
     Args:
@@ -206,6 +200,11 @@ def analyze_python_errors_log(text):
         >>> 'Unique Stack Traces Report (1 unique traces):' in result
         True
     """
+    # traceback_pattern = re.compile(r'Traceback \(most recent call last\):.*?\n[A-Za-z]+?Error:.*?$', re.DOTALL)
+    from collections import defaultdict
+    traceback_pattern = re.compile(r'Traceback \(most recent call last\):.*?(?=\nTraceback |\Z)', re.DOTALL)
+    file_line_pattern = re.compile(r'\n\s*File "(.*?\.py)", line (\d+), in ')
+    error_pattern = re.compile(r'\n\s*[A-Za-z_0-9]+Error: .*')
     trace_map = defaultdict(list)
     tracebacks = traceback_pattern.findall(text)
     for trace in tracebacks:
@@ -218,7 +217,6 @@ def analyze_python_errors_log(text):
         if key not in trace_map:
             trace_map[key] = trace
     return create_errors_log_report(trace_map)
-
 
 def create_errors_log_report(trace_map):
     """Generate a report from a map of unique stack traces.
@@ -241,10 +239,14 @@ def create_errors_log_report(trace_map):
         >>> 'Unique Stack Traces Report (1 unique traces):' in report
         True
     """
+    import evn
     with evn.capture_stdio() as printed:
         print(f'Unique Stack Traces Report ({len(trace_map)} unique traces):')
-        print('=' * 80 + '\n')
+        print('='*80 + '\n')
         for _, trace in trace_map.items():
             print(trace)
-            print('-' * 80 + '\n')
+            print('-'*80 + '\n')
     return printed.read()
+
+if __name__ == '__main__':  # ignore
+    main()

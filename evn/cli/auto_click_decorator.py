@@ -46,7 +46,6 @@ import typing
 from functools import wraps
 
 from evn.doc.docstring import extract_param_help
-
 from evn.cli.click_type_handler import ClickTypeHandlers, HandlerNotFoundError
 
 
@@ -125,7 +124,6 @@ def auto_click_decorate_command(fn, type_handlers: list[ClickTypeHandlers]):
         raise RuntimeError(
             'Function is already a full Click command; manual @click.command decorators are not allowed.'
         )
-
     sig = inspect.signature(fn)
     # Collect names of parameters that already have manual Click decoration.
     manual_params = set()

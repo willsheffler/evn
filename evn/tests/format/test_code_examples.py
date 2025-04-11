@@ -19,7 +19,7 @@ def helper_test_code_examples(testname, original, reference):
 
 
 def main():
-    evn.testing.maintest(
+    evn.testing.quicktest(
         namespace=globals(),
         config=config_test,
         verbose=1,

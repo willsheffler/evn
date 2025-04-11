@@ -1,6 +1,6 @@
+import tomli
 from pathlib import Path
 import os
-import tomllib
 import evn
 
 XDG_CONFIG_HOME = Path(
@@ -44,14 +44,14 @@ def load_toml_layer(path: Path) -> dict:
     if not path.exists():
         return evn.Bunch()
     with open(path, 'rb') as f:
-        return evn.bunchify(tomllib.load(f))
+        return evn.bunchify(tomli.load(f))
 
 
 def load_pyproject_toml(path: Path) -> dict:
     if not path.exists():
         return evn.Bunch()
     with open(path, 'rb') as f:
-        data = tomllib.load(f)
+        data = tomli.load(f)
     return evn.bunchify(data.get('tool', {}).get('evn', {}))
 
 

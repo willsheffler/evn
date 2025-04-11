@@ -7,7 +7,8 @@ with evn.cd_project_root() as project_exists:
         assert os.path.exists('pyproject.toml')
         os.system('doit build')
         try:
-            sys.path.append('_build')
+            sys.path.append(f'_build/py3{sys.version_info.minor}')
+            print(f'_build/py3{sys.version_info.minor}')
             from _detect_formatted_blocks import *  # type: ignore
             from _token_column_format import *  # type: ignore
 

@@ -1,5 +1,6 @@
-import tomllib
-import json
+import sys
+import tomli
+import json5 as json
 import glob
 import nox
 import os
@@ -16,14 +17,16 @@ def test_matrix(session):
     session.install('packaging')
     if session.posargs and (session.python) != session.posargs[0]:
         session.skip(f"Skipping {session.python} because it's not in posargs {session.posargs}")
-    # session.install(*'-e .[dev]'.split())
+    # session.install(*'.[dev]'.split())
+    # session.run('doit test')
     whl = select_wheel(session)
     print(f'Installing {whl}')
     session.install(f'{whl}')
     with open('pyproject.toml', 'rb') as f:
-        conf = tomllib.load(f)
+        conf = tomli.load(f)
         deps = conf['project']['dependencies']
         deps += conf['project']['optional-dependencies']['dev']
+    print(deps)
     session.install(*deps)
     session.run(*'pytest --doctest-modules --pyargs evn'.split())
 
@@ -33,7 +36,7 @@ def get_supported_tags_session(session):
         'python',
         '-c',
         (
-            'from packaging.tags import sys_tags; import json;'
+            'from packaging.tags import sys_tags; import json5 as json;'
             'print(json.dumps([str(tag) for tag in sys_tags()]))'
         ),
         silent=True,

@@ -3,20 +3,18 @@ from time import perf_counter
 from dataclasses import dataclass, field
 
 from evn._prelude.lazy_import import lazyimport
-from evn._prelude.inspect import trace
 
 np = lazyimport('numpy')
 import evn
 from evn._prelude.make_decorator import make_decorator
 
-
-@dataclass(slots=True)
+@dataclass
 class Chrono:
     name: str = 'Chrono'
-    initial_context: str = 'misc'
+    initial_scope: str = 'misc'
     verbose: bool = False
     start_time: float = field(default_factory=perf_counter)
-    contextstack: list = field(default_factory=list)
+    scopestack: list = field(default_factory=list)
     profile: dict[str, list] = field(default_factory=dict)
     entered: bool = False
     stopped: bool = False
@@ -26,57 +24,52 @@ class Chrono:
 
     def start(self):
         assert not self.stopped
-        self.contextstack.append(TimerContext(self.initial_context))
+        self.scopestack.append(TimerScope(self.initial_scope))
 
     def stop(self):
         """Stop the chrono and store total elapsed time."""
         assert not self.stopped
-        self.exit_context(self.initial_context)
-        self.store_checkpoint(TimerContext('total', 0, self.elapsed()))
+        self.exit_scope(self.initial_scope)
+        self.store_finished_scope(TimerScope('total', 0, self.elapsed()))
         self.stopped = True
 
     def __enter__(self):
         assert not self.stopped
-        if not self.entered:
-            self.start()
+        if not self.entered: self.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         assert not self.stopped
-        if exc_type:
-            print(f'An exception of type {exc_type} occurred: {exc_val}')
+        if exc_type: print(f'An exception of type {exc_type} occurred: {exc_val}')
         self.stop()
         return False
 
-    @trace
-    def store_checkpoint(self, context):
-        assert not self.stopped
-        self.profile.setdefault(context.name, []).append(context.final())
+    def store_finished_scope(self, scope):
+        assert not (self.stopped or scope.stopped)
+        t = scope.final()
+        print(scope.name, evn.ident.hash(scope), t)
+        self.profile.setdefault(scope.name, []).append(t)
 
-    def context_name(self, obj: 'str|object') -> str:
-        if isinstance(obj, str):
-            return obj
+    def scope_name(self, obj: 'str|object') -> str:
+        if isinstance(obj, str): return obj
         return f'{obj.__module__}.{obj.__qualname__}'.replace('.<locals>', '')
 
-    @trace
-    def enter_context(self, ctx):
+    def enter_scope(self, ctxkey):
         assert not self.stopped
-        name = self.context_name(ctx)
-        if self.contextstack:
-            self.contextstack[-1].subcontext_begins()
-        self.contextstack.append(TimerContext(name))
+        name = self.scope_name(ctxkey)
+        if self.scopestack:
+            self.scopestack[-1].subscope_begins()
+        new = TimerScope(name)
+        self.scopestack.append(new)
 
-    @trace
-    def exit_context(self, ctx: 'str|object' = 'timer shutdown'):
+    def exit_scope(self, ctxkey: 'str|object' = 'timer shutdown'):
         assert not self.stopped
-        name = self.context_name(ctx)
-        if not self.contextstack:
-            raise RuntimeError('Chrono is not running')
-        err = f'stored context: {self.contextstack[-1].name} does not match exit context: {name}'
-        assert self.contextstack[-1].name == name, err
-        self.store_checkpoint(self.contextstack.pop())
-        if self.contextstack:
-            self.contextstack[-1].subcontext_ends()
+        name = self.scope_name(ctxkey)
+        if not self.scopestack: raise RuntimeError('Chrono is not running')
+        err = f'exiting scope: {name} mismatches: {self.scopestack[-1].name}'
+        assert self.scopestack[-1].name == name, err
+        self.store_finished_scope(self.scopestack.pop())
+        if self.scopestack: self.scopestack[-1].subscope_ends()
 
     def elapsed(self) -> float:
         """Return the total elapsed time."""
@@ -111,8 +104,7 @@ class Chrono:
         """
         items = self.profile.keys()
         if order == 'longest':
-            sorted_items = sorted(items,
-                                  key=lambda k: self.get_checkpoint_data(k))
+            sorted_items = sorted(items, key=lambda k: self.get_checkpoint_data(k))
         elif order == 'callorder':
             sorted_items = items
         else:
@@ -134,55 +126,49 @@ class Chrono:
         """
         profile = self.report_dict(order=order, summary=summary)
         report_lines = [f'Chrono Report ({self.name})']
-        report_lines.extend(f'{name}: {time_:.6f}s'
-                            for name, time_ in profile.items())
+        report_lines.extend(f'{name}: {time_:.6f}s' for name, time_ in profile.items())
         report = '\n'.join(report_lines)
         if printme:
             print(report)
         return report
 
-
-@dataclass(slots=True)
-class TimerContext:
+@dataclass
+class TimerScope:
     name: str
-    start: float = field(default_factory=perf_counter)
+    start_time: float = field(default_factory=perf_counter)
     subtotal: float = 0
+    stopped: bool = False
 
     def final(self):
-        self.start, elapsed = None, perf_counter() - self.start + self.subtotal
+        # ic(perf_counter(), self.start_time, self.subtotal)
+        self.stopped, elapsed = True, perf_counter() - self.start_time + self.subtotal
         return elapsed
 
-    @trace
-    def subcontext_begins(self):
-        self.subtotal += perf_counter() - self.start
-        self.start = 0
+    def subscope_begins(self):
+        self.subtotal += perf_counter() - self.start_time
+        self.start_time = 0
 
-    @trace
-    def subcontext_ends(self):
+    def subscope_ends(self):
         self.start = perf_counter()
-
 
 evn.chrono_main = Chrono('main')
 
-
-def chrono_enter_context(name, **kw):
+def chrono_enter_scope(name, **kw):
     global chrono_main
     t = kw.get('chrono', evn.chrono_main)
-    t.enter_context(name, **kw)
+    t.enter_scope(name, **kw)
 
-
-def chrono_exit_context(name, **kw):
+def chrono_exit_scope(name, **kw):
     global chrono_main
     t = kw.get('chrono', evn.chrono_main)
-    t.exit_context(name, **kw)
-
+    t.exit_scope(name, **kw)
 
 @make_decorator(chrono=evn.chrono_main)
-def chrono(wrapped, args, kw, chrono=None):
+def chrono(wrapped, *args, chrono=None, **kw):
     timer: Chrono = kw.get('chrono', chrono)
-    timer.enter_context(wrapped)
+    timer.enter_scope(wrapped)
     result = wrapped(*args, **kw)
-    timer.exit_context(wrapped)
+    timer.exit_scope(wrapped)
     if not isinstance(result, types.GeneratorType):
         return result
 
@@ -190,14 +176,14 @@ def chrono(wrapped, args, kw, chrono=None):
         try:
             geniter = iter(result)
             while True:
-                timer.enter_context(wrapped)
+                timer.enter_scope(wrapped)
                 item = next(geniter)
-                timer.exit_context(wrapped)
+                timer.exit_scope(wrapped)
                 yield item
         except StopIteration:
             pass
         finally:
-            timer.exit_context(wrapped)
+            timer.exit_scope(wrapped)
             if hasattr(result, 'close'):
                 result.close()
 

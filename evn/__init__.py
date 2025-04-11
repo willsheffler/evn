@@ -11,13 +11,12 @@ if not (projroot / 'pyproject.toml').exists:
     projroot = None
     evn_installed = True
 show_trace = False
-
+chrono_main: 'evn._prelude.chrono.Chrono' = None  #type:ignore #noqa
 
 def evn_init_checkpoint(name):
     global _start, _timings
     _timings[name] = [perf_counter() - _start]
     _start = perf_counter()
-
 
 # import os
 import typing as t  # noqa
@@ -45,7 +44,7 @@ from typing import (
     MutableSequence as MutableSequence,
     Optional as Optional,
 )
-
+from ninja_import import ninja_import as ninja_import
 from icecream import ic as ic
 
 ic.configureOutput(includeContext=True)
@@ -67,14 +66,17 @@ from evn._prelude.basic_types import (
     isseqmut as isseqmut,
     ismapmut as ismapmut,
     isiter as isiter,
+    is_free_function as is_free_function,
+    is_bound_method as is_bound_method,
+    is_unbound_method as is_unbound_method,
+    is_member_function as is_member_function,
+    is_function as is_function,
+    is_generator as is_generator,
 )
-
 from evn._prelude.make_decorator import make_decorator as make_decorator
 from evn._prelude.import_util import (
     is_installed as is_installed,
     not_installed as not_installed,
-    cherry_pick_import as cherry_pick_import,
-    cherry_pick_imports as cherry_pick_imports,
 )
 from evn._prelude.lazy_import import (
     lazyimport as lazyimport,
@@ -89,6 +91,7 @@ from evn._prelude.structs import (
     mutablestruct as mutablestruct,
     basestruct as basestruct,
     field as field,
+    asdict as asdict,
 )
 from evn._prelude.typehints import (
     KW as KW,
@@ -101,12 +104,14 @@ from evn._prelude.typehints import (
     EnumerIter as EnumerIter,
     EnumerListIter as EnumerListIter,
     basic_typevars as basic_typevars,
+    annotype as annotype,
 )
+
 from evn._prelude.chrono import (
     Chrono as Chrono,
     chrono as chrono,
-    chrono_enter_context as chrono_enter_context,
-    chrono_exit_context,
+    chrono_enter_scope as chrono_enter_scope,
+    chrono_exit_scope,
 )
 from evn.decofunc import (
     iterize_on_first_param as iterize_on_first_param,
@@ -174,30 +179,43 @@ from evn._prelude.inspect import (
     summary as summary,
     trace as trace,
 )
-from evn.testing import maintest as maintest
-from evn.tool import filter_python_output
 
-from evn import (
-    config as config,
-    cli as cli,
-    dev as dev,
-    decofunc as decofunc,
-    decon as decon,
-    doc as doc,
-    format as format,
-    meta as meta,
-    testing as testing,
-    tree as tree,
-    tool as tool,
-)
+import evn.ident as ident
 
-# optional_imports = cherry_pick_import('evn.contexts.optional_imports')
-# capture_stdio = cherry_pick_import('evn.contexts.capture_stdio')
-# ic, icm, icv = cherry_pick_imports('evn.debug', 'ic icm icv')
-# timed = cherry_pick_import('evn.instrumentation.timer.timed')
-# item_wise_operations = cherry_pick_import('evn.item_wise.item_wise_operations')
-# subscriptable_for_attributes = cherry_pick_import('evn.decorators.subscriptable_for_attributes')
-# iterize_on_first_param = cherry_pick_import('evn.decorators.iterize_on_first_param')
+if TYPE_CHECKING:
+    from evn import (
+        config as config,
+        cli as cli,
+        dev as dev,
+        decofunc as decofunc,
+        decon as decon,
+        doc as doc,
+        format as format,
+        meta as meta,
+        testing as testing,
+        tree as tree,
+        tool as tool,
+    )
+else:
+    config = lazyimport('evn.config')
+    cli = lazyimport('evn.cli')
+    dev = lazyimport('evn.dev')
+    decofunc = lazyimport('evn.decofunc')
+    decon = lazyimport('evn.decon')
+    doc = lazyimport('evn.doc')
+    format = lazyimport('evn.format')
+    meta = lazyimport('evn.meta')
+    testing = lazyimport('evn.testing')
+    tree = lazyimport('evn.tree')
+    tool = lazyimport('evn.tool')
+
+# optional_imports = ninja_import('evn.contexts.optional_imports')
+# capture_stdio = ninja_import('evn.contexts.capture_stdio')
+# ic, icm, icv = ninja_imports('evn.debug', 'ic icm icv')
+# timed = ninja_import('evn.instrumentation.timer.timed')
+# item_wise_operations = ninja_import('evn.item_wise.item_wise_operations')
+# subscriptable_for_attributes = ninja_import('evn.decorators.subscriptable_for_attributes')
+# iterize_on_first_param = ninja_import('evn.decorators.iterize_on_first_param')
 
 # _global_chrono = None
 

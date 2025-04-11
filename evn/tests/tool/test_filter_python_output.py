@@ -1,46 +1,44 @@
+import re
 import difflib
 import pytest
 import evn
 
-
 def main():
-    pass
-
+    evn.testing.quicktest(globals(), verbose=True)
 
 def helper_test_filter_python_output(text, ref, preset):
-    result = evn.filter_python_output(text, preset=preset, minlines=0)
+    result = evn.tool.filter_python_output(text, preset=preset, minlines=0)
     if result != ref:
         diff = difflib.ndiff(result.splitlines(), ref.splitlines())
         # print('\nDIFF:', flush=True)
         # print('\n'.join(f'NDIFF {d}' for d in diff), flush=True)
-        print('-----')
-        print(text)
-        print('-----')
+        print('--------------------------------------------------------------------')
+        print(result)
+        print('--------------------------------------------------------------------')
         assert len(result.splitlines()) == len(ref.splitlines())
         assert 0, 'filter mismatch'
 
 
-@pytest.mark.xfail
-def test_filter_python_output_whitespace():
-    result = evn.filter_python_output('    \n' * 7, preset='unittest')
-    assert result.count('\n') == 1
+def test_transform_fileref_to_python_format():
+    from evn.tool.filter_python_output import transform_fileref_to_python_format as tf
+    new = tf('evn/_prelude/chrono.py:63: TypeError', None)
+    assert new == '  File "evn/_prelude/chrono.py", line 63, ...'
 
+
+# @pytest.mark.xfail
+def test_filter_python_output_whitespace():
+    result = evn.tool.filter_python_output('    \n' * 22, preset='unittest', minlines=0)
+    print(result.count('\n'))
+    assert result.count('\n') == 1
 
 def test_filter_python_output_mid():
     helper_test_filter_python_output(midtext, midfiltered, preset='unittest')
 
-
 def test_filter_python_output_small():
-    helper_test_filter_python_output(smalltext,
-                                     smallfiltered,
-                                     preset='unittest')
-
+    helper_test_filter_python_output(smalltext, smallfiltered, preset='unittest')
 
 def test_filter_python_output_error():
-    helper_test_filter_python_output(errortext,
-                                     errorfiltered,
-                                     preset='unittest')
-
+    helper_test_filter_python_output(errortext, errorfiltered, preset='unittest')
 
 def test_analyze_python_errors_log():
     log = """Traceback (most recent call last):
@@ -51,7 +49,6 @@ ZeroDivisionError: division by zero"""
     # print(result)
     assert 'Unique Stack Traces Report (1 unique traces):' in result
     assert 'ZeroDivisionError: division by zero' in result
-
 
 def test_create_errors_log_report():
     trace_map = {
@@ -65,7 +62,6 @@ ZeroDivisionError: division by zero"""
     report = evn.tool.create_errors_log_report(trace_map)
     assert 'Unique Stack Traces Report (1 unique traces):' in report
     assert 'ZeroDivisionError: division by zero' in report
-
 
 def test_multiple_unique_traces():
     log = """Traceback (most recent call last):
@@ -83,7 +79,6 @@ ValueError: invalid literal for int()"""
     assert 'ZeroDivisionError: division by zero' in result
     assert 'ValueError: invalid literal for int()' in result
 
-
 def test_similar_traces_are_grouped():
     log = """Traceback (most recent call last):
   File "example.py", line 13, in <module>
@@ -99,7 +94,6 @@ ZeroDivisionError: division by zero"""
     assert 'Unique Stack Traces Report (1 unique traces):' in result
     assert 'ZeroDivisionError: division by zero' in result
     assert result.count('ZeroDivisionError') == 1
-
 
 def test_different_lines_are_not_grouped():
     log = """Traceback (most recent call last):
@@ -117,13 +111,12 @@ ZeroDivisionError: division by zero"""
     assert 'ZeroDivisionError: division by zero' in result
     assert result.count('ZeroDivisionError') == 2
 
-
 # ######################### test data #######################
-errortext = """maintest /home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py:
+errortext = """quicktest /home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py:
 Traceback (most recent call last):
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 40, in quicktest
+    _quicktest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 80, in _quicktest_run_test_function
     TEST.dev.call_with_args_from(fixtures, func, **kw)
   File "/home/sheffler/rfd/TEST.dev.decorators.py", line 33, in call_with_args_from
     return func(**args)
@@ -133,40 +126,34 @@ Traceback (most recent call last):
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 NameError: name 'helper_test_filter_python_output' is not defined
 Times(name=Timer, order=longest, summary=sum):
-    maintest *    0.39438
-============== run_tests_on_file.py done, time   0.611 ==============
+    quicktest *    0.39438
+============== run_tests_for_file.py done, time   0.611 ==============
 """
-errorfiltered = """maintest /home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py:
+errorfiltered = """quicktest /home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py:
 Traceback (most recent call last):
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
-    TEST.dev.call_with_args_from(fixtures, func, **kw)
-  File "/home/sheffler/rfd/TEST.dev.decorators.py", line 33, in call_with_args_from
-    return func(**args)
-           ^^^^^^^^^^^^
+  quicktest -> _quicktest_run_test_function -> call_with_args_from ->
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 19, in test_filter_python_output_small
     helper_test_filter_python_output(smalltext, smallfiltered, preset='boilerplate')
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 NameError: name 'helper_test_filter_python_output' is not defined
 Times(name=Timer, order=longest, summary=sum):
-    maintest *    0.39438
-============== run_tests_on_file.py done, time   0.611 ==============
+    quicktest *    0.39438
+============== run_tests_for_file.py done, time   0.611 ==============
 """
 
-midtext = """maintest /home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py:
+midtext = """quicktest /home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py:
 ==============test_sym_detect_frames_noised_T===============
 Traceback (most recent call last):
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py", line 185, in <module>
     main()
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py", line 25, in main
-    TEST.tests.maintest(namespace=globals(), config=config_test, verbose=1)
-  File "/home/sheffler/rfd/lib/TEST/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/lib/TEST/TEST/tests/maintest.py", line 93, in _maintest_run_test_function
+    TEST.tests.quicktest(namespace=globals(), config=config_test, verbose=1)
+  File "/home/sheffler/rfd/lib/TEST/TEST/tests/quicktest.py", line 40, in quicktest
+    _quicktest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
+  File "/home/sheffler/rfd/lib/TEST/TEST/tests/quicktest.py", line 93, in _quicktest_run_test_function
     elif error: raise error
                 ^^^^^^^^^^^
-  File "/home/sheffler/rfd/lib/TEST/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
+  File "/home/sheffler/rfd/lib/TEST/TEST/tests/quicktest.py", line 80, in _quicktest_run_test_function
     TEST.dev.call_with_args_from(fixtures, func, **kw)
   File "/home/sheffler/rfd/lib/TEST/TEST.dev.decorators.py", line 33, in call_with_args_from
     return func(**args)
@@ -225,19 +212,19 @@ Traceback (most recent call last):
 AssertionError
 Times(name=Timer, order=longest, summary=sum):
     test_sym_detect.py:func_noised      0.43416
-                          maintest *    0.39847
+                          quicktest *    0.39847
                      sym.py:frames      0.03893
 Traceback (most recent call last):
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 92, in <module>
     main()
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 6, in main
-    TEST.tests.maintest(namespace=globals())
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 93, in _maintest_run_test_function
+    TEST.tests.quicktest(namespace=globals())
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 40, in quicktest
+    _quicktest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 93, in _quicktest_run_test_function
     elif error: raise error
                 ^^^^^^^^^^^
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 80, in _quicktest_run_test_function
     TEST.dev.call_with_args_from(fixtures, func, **kw)
   File "/home/sheffler/rfd/TEST.dev.decorators.py", line 33, in call_with_args_from
     return func(**args)
@@ -249,10 +236,10 @@ AssertionError
 
 """
 
-midfiltered = """maintest /home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py:
+midfiltered = """quicktest /home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py:
 ==============test_sym_detect_frames_noised_T===============
 Traceback (most recent call last):
-  test_sym_detect.py -> main -> maintest -> _maintest_run_test_function -> _maintest_run_test_function -> call_with_args_from ->
+  test_sym_detect.py -> main -> quicktest -> _quicktest_run_test_function -> _quicktest_run_test_function -> call_with_args_from ->
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/sym/test_sym_detect.py", line 76, in func_noised
     sinfo = helper_test_frames(nframes, symid, ideal=False)
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,10 +255,10 @@ Traceback (most recent call last):
 AssertionError
 Times(name=Timer, order=longest, summary=sum):
     test_sym_detect.py:func_noised      0.43416
-                          maintest *    0.39847
+                          quicktest *    0.39847
                      sym.py:frames      0.03893
 Traceback (most recent call last):
-  test_filter_python_output.py -> main -> maintest -> _maintest_run_test_function -> _maintest_run_test_function -> call_with_args_from ->
+  test_filter_python_output.py -> main -> quicktest -> _quicktest_run_test_function -> _quicktest_run_test_function -> call_with_args_from ->
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 13, in test_filter_python_output
     assert 0
            ^
@@ -283,13 +270,13 @@ Traceback (most recent call last):
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 92, in <module>
     main()
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 6, in main
-    TEST.tests.maintest(namespace=globals())
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 93, in _maintest_run_test_function
+    TEST.tests.quicktest(namespace=globals())
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 40, in quicktest
+    _quicktest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 93, in _quicktest_run_test_function
     elif error: raise error
                 ^^^^^^^^^^^
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
+  File "/home/sheffler/rfd/TEST/tests/quicktest.py", line 80, in _quicktest_run_test_function
     TEST.dev.call_with_args_from(fixtures, func, **kw)
   File "/home/sheffler/rfd/TEST.dev.decorators.py", line 33, in call_with_args_from
     return func(**args)
@@ -303,20 +290,7 @@ extra text at the end
 
 smallfiltered = """extra text at the start
 Traceback (most recent call last):
-  File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 92, in <module>
-    main()
-  File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 6, in main
-    TEST.tests.maintest(namespace=globals())
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 40, in maintest
-    _maintest_run_test_function(name, func, result, nofail, fixtures, funcsetup, kw)
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 93, in _maintest_run_test_function
-    elif error: raise error
-                ^^^^^^^^^^^
-  File "/home/sheffler/rfd/TEST/tests/maintest.py", line 80, in _maintest_run_test_function
-    TEST.dev.call_with_args_from(fixtures, func, **kw)
-  File "/home/sheffler/rfd/TEST.dev.decorators.py", line 33, in call_with_args_from
-    return func(**args)
-           ^^^^^^^^^^^^
+  test_filter_python_output.py -> main -> quicktest -> _quicktest_run_test_function -> _quicktest_run_test_function -> call_with_args_from ->
   File "/home/sheffler/rfd/lib/TEST/TEST/tests/dev/code/test_filter_python_output.py", line 13, in test_filter_python_output
     assert 0
            ^

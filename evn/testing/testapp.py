@@ -1,7 +1,6 @@
 from evn import CLI
 from pathlib import Path
 
-
 # === Root CLI scaffold using inheritance-based hierarchy ===
 class TestApp(CLI):
     """

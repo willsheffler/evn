@@ -3,16 +3,17 @@ import pytest
 import click
 from evn.cli.click_type_handler import ClickTypeHandler, MetadataPolicy, get_cached_paramtype
 
+def main():
+    import evn
+    evn.testing.quicktest(globals())
 
 class DummyParam:
     pass
 
-
 # Dummy handler classes for testing. Mark them as not tests.
 class DummyIntHandler(ClickTypeHandler):
-    __test__ = False  # Prevent pytest collection.
-    supported_types = {int: 'metadata_required'}
-    _priority_bonus = 5
+    __supported_types__ = {int: MetadataPolicy.OPTIONAL}
+    __priority_bonus__ = 5
 
     def convert(self, value, param, ctx):
         try:
@@ -22,11 +23,9 @@ class DummyIntHandler(ClickTypeHandler):
         except Exception as e:
             self.fail(f'DummyIntHandler conversion failed: {e}', param, ctx)
 
-
 class DummyBoolHandler(ClickTypeHandler):
-    __test__ = False
-    supported_types = {bool: 'metadata_required'}
-    _priority_bonus = 2
+    __supported_types__ = {bool: MetadataPolicy.OPTIONAL}
+    __priority_bonus__ = 2
 
     def convert(self, value, param, ctx):
         val = self.preprocess_value(value)
@@ -35,15 +34,13 @@ class DummyBoolHandler(ClickTypeHandler):
         elif isinstance(val, str) and val.lower() in ['false', '0', 'no']:
             return False
         else:
-            self.fail(f'DummyBoolHandler conversion failed for {value}', param,
-                      ctx)
-
+            self.fail(f'DummyBoolHandler conversion failed for {value}', param, ctx)
 
 class DummyListHandler(ClickTypeHandler):
     __test__ = False
     # For list types, we require metadata to specify the element type.
-    supported_types = {list: MetadataPolicy.REQUIRED}
-    _priority_bonus = 3
+    __supported_types__ = {list: MetadataPolicy.REQUIRED}
+    __priority_bonus__ = 3
 
     def convert(self, value, param, ctx):
         raw_list = self.preprocess_value(value)
@@ -63,16 +60,14 @@ class DummyListHandler(ClickTypeHandler):
 
     def preprocess_value(self, raw: str):
         # For testing, we expect metadata to be passed via an attribute.
-        self.metadata_element_type = self.metadata if hasattr(
-            self, 'metadata') else int
+        self.metadata_element_type = self.metadata if hasattr(self, 'metadata') else int
         return raw
-
 
 # New Dummy handler for float.
 class DummyFloatHandler(ClickTypeHandler):
     __test__ = False
-    supported_types = {float: 'metadata_required'}
-    _priority_bonus = 4
+    __supported_types__ = {float: MetadataPolicy.OPTIONAL}
+    __priority_bonus__ = 4
 
     def convert(self, value, param, ctx):
         try:
@@ -82,12 +77,11 @@ class DummyFloatHandler(ClickTypeHandler):
         except Exception as e:
             self.fail(f'DummyFloatHandler conversion failed: {e}', param, ctx)
 
-
 # New Dummy handler for string.
 class DummyStringHandler(ClickTypeHandler):
     __test__ = False
-    supported_types = {str: 'metadata_required'}
-    _priority_bonus = 1
+    __supported_types__ = {str: MetadataPolicy.OPTIONAL}
+    __priority_bonus__ = 1
 
     def convert(self, value, param, ctx):
         try:
@@ -96,58 +90,48 @@ class DummyStringHandler(ClickTypeHandler):
         except Exception as e:
             self.fail(f'DummyStringHandler conversion failed: {e}', param, ctx)
 
-
 # Tests for handles_type method.
 def test_handles_type_int():
     handler = DummyIntHandler()
     assert handler.handles_type(int) is True
     assert handler.handles_type(str) is False
 
-
 def test_handles_type_bool():
     handler = DummyBoolHandler()
     assert handler.handles_type(bool) is True
     assert handler.handles_type(int) is False
-
 
 def test_handles_type_list_with_metadata():
     handler = DummyListHandler()
     assert handler.handles_type(list, metadata=int) is True
     assert handler.handles_type(list, metadata=None) is False
 
-
 def test_handles_type_float():
     handler = DummyFloatHandler()
     assert handler.handles_type(float) is True
     assert handler.handles_type(int) is False
-
 
 def test_handles_type_string():
     handler = DummyStringHandler()
     assert handler.handles_type(str) is True
     assert handler.handles_type(int) is False
 
-
 # # Tests for compute_priority
 # def test_compute_priority():
 #     handler = DummyIntHandler()
 #     priority = handler.compute_priority(int, None, 1)
-#     # Expected: mro_rank (1) + _priority_bonus (5) + specificity (0) = 6
+#     # Expected: mro_rank (1) + __priority_bonus__ (5) + specificity (0) = 6
 #     assert priority == 6
-
 # def test_compute_priority_with_metadata():
 #     handler = DummyListHandler()
 #     priority = handler.compute_priority(list, int, 2)
-#     # Expected: 2 + _priority_bonus (3) + METADATA_BONUS (10) + specificity (0) = 15
+#     # Expected: 2 + __priority_bonus__ (3) + METADATA_BONUS (10) + specificity (0) = 15
 #     assert priority == 15
-
-
 # Test caching of paramtype
 def test_get_cached_paramtype():
     pt1 = get_cached_paramtype(DummyIntHandler, int, None)
     pt2 = get_cached_paramtype(DummyIntHandler, int, None)
     assert pt1 is pt2
-
 
 # Test conversion: DummyIntHandler should convert a string to int.
 def test_convert_int():
@@ -156,7 +140,6 @@ def test_convert_int():
     result = handler.convert('123', DummyParam(), ctx)
     assert result == 123
 
-
 # Test conversion: DummyBoolHandler should convert strings to booleans.
 def test_convert_bool_true():
     handler = DummyBoolHandler()
@@ -164,13 +147,11 @@ def test_convert_bool_true():
     result = handler.convert('yes', DummyParam(), ctx)
     assert result is True
 
-
 def test_convert_bool_false():
     handler = DummyBoolHandler()
     ctx = click.get_current_context(silent=True)
     result = handler.convert('no', DummyParam(), ctx)
     assert result is False
-
 
 # Test conversion for list: Using DummyListHandler.
 def test_convert_list():
@@ -180,14 +161,12 @@ def test_convert_list():
     result = handler.convert('1, 2, 3', DummyParam(), ctx)
     assert result == [1, 2, 3]
 
-
 # Test conversion: DummyFloatHandler should convert a string to float.
 def test_convert_float():
     handler = DummyFloatHandler()
     ctx = click.get_current_context(silent=True)
     result = handler.convert('123.45', DummyParam(), ctx)
     assert result == 123.45
-
 
 # Test conversion: DummyStringHandler should return the input string.
 def test_convert_string():
@@ -196,24 +175,19 @@ def test_convert_string():
     result = handler.convert('hello world', DummyParam(), ctx)
     assert result == 'hello world'
 
-
 def test_bool_handler_invalid_input():
     from evn.cli.basic_click_type_handlers import BasicBoolHandler
-
     handler = BasicBoolHandler()
     ctx = click.get_current_context(silent=True)
     with pytest.raises(click.BadParameter):
         handler.convert('maybe', DummyParam(), ctx)
 
-
 def test_uuid_handler_invalid_input():
     from evn.cli.basic_click_type_handlers import BasicUUIDHandler
-
     handler = BasicUUIDHandler()
     ctx = click.get_current_context(silent=True)
     with pytest.raises(click.BadParameter):
         handler.convert('not-a-uuid', DummyParam(), ctx)
 
-
 if __name__ == '__main__':
-    pytest.main([__file__])
+    main()

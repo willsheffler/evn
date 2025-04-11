@@ -15,8 +15,8 @@ np = lazyimport('numpy')
 
 import evn
 
-generic_get_items = evn.cherry_pick_import(
-    'evn.decon.attr_access.generic_get_items')
+generic_get_items = evn.ninja_import(
+    'evn.decon.attr_access','generic_get_items')
 
 
 def get_available_result_types():

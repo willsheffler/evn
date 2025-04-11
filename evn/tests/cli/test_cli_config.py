@@ -6,7 +6,7 @@ from evn.testing import TestApp as App
 def main():
     # test_set_app_defaults_from_config()
     # return
-    evn.maintest(
+    evn.quicktest(
         namespace=globals(),
         verbose=1,
         check_xfail=False,

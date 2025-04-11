@@ -1,9 +1,12 @@
 import difflib
 import pytest
 from evn.format import MarkHandFormattedBlocksCpp, RuffFormat, CodeFormatter, UnmarkCpp, AlignTokensCpp
+import evn
+
+def main():
+    evn.testing.quicktest(globals())
 
 splitter = '======== ↑ original ↓ formatted ========'
-
 
 @pytest.mark.parametrize(
     'testcase',

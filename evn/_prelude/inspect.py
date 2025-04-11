@@ -30,6 +30,7 @@ _show = show
 
 
 def diff(obj1, obj2, out=print, **kw):
+    import evn.tree.tree_diff  # noqa
     result = diff_impl(obj1, obj2, **kw)
     if out and result:
         _show(result, **kw)
@@ -48,6 +49,7 @@ def summary(obj, **kw) -> str:
 @dispatch(object)
 def show_impl(obj, **kw):
     """Default show function."""
+    import evn.tree.tree_format  # noqa
     evn.kwcall(kw, rich.inspect, obj)
 
 

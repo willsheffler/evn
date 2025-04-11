@@ -24,7 +24,7 @@ Example (doctestable):
 
 >>> from evn.cli.click_type_handler import ClickTypeHandlers, ClickTypeHandler
 >>> class DummyHandler(ClickTypeHandler):
-...     supported_types = {int: 'optional_metadata'}
+...     __supported_types__ = {int: 'optional_metadata'}
 ...
 ...     def convert(self, value, param, ctx):
 ...         return int(value)
@@ -47,16 +47,13 @@ import enum
 from functools import lru_cache
 import click
 
-
 class MetadataPolicy(str, enum.Enum):
     FORBID = 'no_metadata'
     OPTIONAL = 'optional_metadata'
     REQUIRED = 'require_metadata'
 
-
 class HandlerNotFoundError(RuntimeError):
     pass
-
 
 class ClickTypeHandlers(set):
     """
@@ -66,36 +63,45 @@ class ClickTypeHandlers(set):
     It can be used to retrieve the appropriate handler for a given type.
     """
 
-    @classmethod
-    def __new__(cls, val=(), *a, **kw):
-        if isinstance(cls, ClickTypeHandlers):
-            return val
-        return super().__new__(val)
+    # @classmethod
+    # def __new__(cls, val=(), *a, **kw):
+    #     if isinstance(cls, ClickTypeHandlers):
+    #         return val
+    #     return super().__new__(val)
+
+    def __init__(self, *args):
+        super().__init__()
+        if len(args) == 1 and isinstance(args[0], (list, tuple)):
+            args = args[0]
+        for arg in args:
+            if isinstance(arg, ClickTypeHandlers):
+                self.update(arg)
+            elif issubclass(arg, ClickTypeHandler):
+                self.add(arg)
+            else:
+                raise TypeError(
+                    f"Expected ClickTypeHandler cls or ClickTypeHandlers instance, got {type(arg)}\n{arg}")
 
     def ordered_handlers(self, basetype, metadata):
         [h for h in self if h.metadata_policy(basetype)]
         return list(sorted(self, key=lambda x: x.priority(), reverse=True))
 
-    def typehint_to_click_paramtype(self, basetype,
-                                    metadata) -> click.ParamType:
+    def typehint_to_click_paramtype(self, basetype, metadata) -> click.ParamType:
         """Given a basetype and optional metadata, return the Click ParamType to use."""
         handlers = self.ordered_handlers(basetype, metadata)
         if metadata:
             for handler_class in handlers:
-                if handler_class.metadata_policy(
-                        basetype) == MetadataPolicy.REQUIRED:
+                # ic(handler_class.metadata_policy)
+                if handler_class.metadata_policy(basetype) == MetadataPolicy.REQUIRED:
                     with contextlib.suppress(HandlerNotFoundError):
-                        return get_cached_paramtype(handler_class, basetype,
-                                                    metadata)
+                        return get_cached_paramtype(handler_class, basetype, metadata)
         for handler_class in handlers:
-            if handler_class.metadata_policy(
-                    basetype) == MetadataPolicy.OPTIONAL:
+            if handler_class.metadata_policy(basetype) == MetadataPolicy.OPTIONAL:
                 with contextlib.suppress(HandlerNotFoundError):
                     return get_cached_paramtype(handler_class, basetype)
         if not metadata:
             for handler_class in handlers:
-                if handler_class.metadata_policy(
-                        basetype) == MetadataPolicy.FORBID:
+                if handler_class.metadata_policy(basetype) == MetadataPolicy.FORBID:
                     with contextlib.suppress(HandlerNotFoundError):
                         return get_cached_paramtype(handler_class, basetype)
         if not metadata and basetype in (int, float, str, bool, uuid.UUID):
@@ -107,15 +113,17 @@ class ClickTypeHandlers(set):
             f'No suitable Click ParamType found for basetype {basetype} with metadata {metadata} using handlers: {handlers}'
         )
 
+    def __repr__(self):
+        return f'ClickTypeHandlers({[h.__name__ for h in self]})'
 
 class ClickTypeHandler(click.ParamType):
     """
     Base class for handling conversion of type hints to Click ParamTypes.
 
     Subclasses should define:
-      - supported_types: a dict mapping types (e.g., int, list[int]) to booleans.
+      - __supported_types__: a dict mapping types (e.g., int, list[int]) to booleans.
         The boolean is True if the handler requires metadata for that type.
-      - _priority_bonus: an integer bonus (default 0) that subclasses can override.
+      - __priority_bonus__: an integer bonus (default 0) that subclasses can override.
       - METADATA_BONUS: a fixed bonus (default 10) applied if metadata is used.
 
     This class provides default no-op implementations for preprocess_value and postprocess_value.
@@ -125,8 +133,8 @@ class ClickTypeHandler(click.ParamType):
 
     # Dictionary of types this handler applies to.
     # Example: {int: False, float: False, list: True}
-    supported_types: dict[type, MetadataPolicy] = {}
-    _priority_bonus = 0
+    __supported_types__: dict[type, MetadataPolicy] = {}
+    __priority_bonus__ = 0
     METADATA_BONUS = 10
 
     def __init__(self):
@@ -134,7 +142,7 @@ class ClickTypeHandler(click.ParamType):
 
     @classmethod
     def metadata_policy(cls, basetype):
-        return cls.supported_types.get(basetype)
+        return cls.__supported_types__.get(basetype)
 
     @classmethod
     def typehint_to_click_paramtype(cls, basetype, metadata):
@@ -144,19 +152,17 @@ class ClickTypeHandler(click.ParamType):
         """
         if not cls.handles_type(basetype, metadata):
             raise HandlerNotFoundError(
-                f'{cls.__class__.__name__} does not handle type {basetype} with metadata {metadata}'
-            )
+                f'{cls.__class__.__name__} does not handle type {basetype} with metadata {metadata}')
         return cls()
 
     @classmethod
     def handles_type(cls, basetype, metadata=None):
         """
         Check whether this handler applies to the given basetype.
-        Iterates over supported_types; if a key matches basetype, then if the boolean flag is True,
+        Iterates over __supported_types__; if a key matches basetype, then if the boolean flag is True,
         metadata must be provided (and non-empty) for a positive result.
         """
-        for typ, metapol in cls.supported_types.items():
-            # print(typ, basetype, metadata, metapol)
+        for typ, metapol in cls.__supported_types__.items():
             if issubclass(basetype, typ):
                 if metapol == MetadataPolicy.REQUIRED:
                     return bool(metadata)
@@ -196,7 +202,7 @@ class ClickTypeHandler(click.ParamType):
 
     @classmethod
     def priority(cls):
-        return cls._priority_bonus
+        return cls.__priority_bonus__
 
     # @classmethod
     # def type_specificity(cls, basetype):
@@ -214,17 +220,16 @@ class ClickTypeHandler(click.ParamType):
     #    Compute the overall priority for this handler.
     #    Lower numeric values are better.
     #    Priority is computed as:
-    #        mro_rank + _priority_bonus + (METADATA_BONUS if metadata is required and provided#) + type_specificity
+    #        mro_rank + __priority_bonus__ + (METADATA_BONUS if metadata is required and provided#) + type_specificity
     #    """
     #     specificity = self.type_specificity(basetype)
-    #     bonus = self._priority_bonus
+    #     bonus = self.__priority_bonus__
     #     if self.handles_type(basetype, metadata):
-    #         for typ, metadata_policy in self.supported_types.items():
+    #         for typ, metadata_policy in self.__supported_types__.items():
     #             if basetype == typ and metadata_policy:
     #                 bonus += self.METADATA_BONUS
     #                 break
     #     return mro_rank + bonus + specificity
-
 
 # Caching function: cache the computed Click ParamType based on handler class, basetype, and metadata.
 @lru_cache(maxsize=None)

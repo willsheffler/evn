@@ -1,4 +1,4 @@
-sublime_build.log
+sublime_build.log*
 wheelhouse
 __pycache__
 *.egg-info
@@ -39,7 +39,9 @@ __pycache__
 *.out
 *.app
 
-.doit.db
-.doit.db.*
+.doit.*
 _build
 *.sublime-workspace
+/test-logs
+.test*
+*.orig

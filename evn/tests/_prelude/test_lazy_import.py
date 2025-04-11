@@ -9,7 +9,7 @@ testconfig = evn.Bunch(nocapture=['test_broken_package'], )
 
 
 def main():
-    evn.tests.maintest(namespace=globals(), config=testconfig)
+    evn.testing.quicktest(namespace=globals(), config=testconfig)
 
 
 def test_broken_package():

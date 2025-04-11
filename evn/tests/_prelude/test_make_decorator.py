@@ -4,7 +4,7 @@ import evn
 
 
 def main():
-    evn.testing.maintest(
+    evn.testing.quicktest(
         namespace=globals(),
         config=evn.Bunch(re_only=[], re_exclude=[]),
         verbose=1,
@@ -17,7 +17,7 @@ def test_deco():
     result = ''
 
     @evn.make_decorator
-    def foo(func, args, kwargs):
+    def foo(func, *args, **kwargs):
         nonlocal result
         result += 'prefoo'
         return func(*args, **kwargs)
@@ -38,7 +38,7 @@ def test_deco_config_default():
     result = ''
 
     @evn.make_decorator(msg='baz')
-    def foo(func, args, kwargs, msg):
+    def foo(func, *args, msg, **kwargs):
         nonlocal result
         result += msg
         return func(*args, **kwargs)
@@ -57,7 +57,7 @@ def test_deco_config():
     result = ''
 
     @evn.make_decorator(msg='baz')
-    def foo(func, args, kwargs, msg=None):
+    def foo(func, *args, msg=None, **kwargs):
         nonlocal result
         result += msg
         return func(*args, **kwargs)
@@ -75,7 +75,7 @@ def test_deco_not_callable_error():
     with pytest.raises(TypeError):
 
         @evn.make_decorator('baz')
-        def foo(func, args, kwargs):
+        def foo(func, *args, **kwargs):
             return func(*args, **kwargs)
 
 
@@ -83,7 +83,7 @@ def test_deco_config_kwargs_error():
     result = ''
 
     @evn.make_decorator(msg='baz')
-    def foo(func, args, kwargs, msg=''):
+    def foo(func, *args, msg='', **kwargs):
         nonlocal result
         result += msg
         return func(*args, **kwargs)
@@ -100,7 +100,7 @@ def test_deco_config_args_error():
     result = ''
 
     @evn.make_decorator(msg='baz')
-    def foo(func, args, kwargs, msg=''):
+    def foo(func, *args, msg='', **kwargs):
         nonlocal result
         result += msg
         return func(*args, **kwargs)
@@ -116,7 +116,7 @@ def test_deco_config_args_error():
 def test_deco_method():
 
     @evn.make_decorator(extra=0)
-    def plus_this(func, args, kwargs, extra):
+    def plus_this(func, *args, extra, **kwargs):
         return func(*args, **kwargs) + extra
 
     class Foo:
@@ -148,7 +148,7 @@ def test_deco_class():
     assert foo.mul(1, 2) == 2
 
     @evn.make_decorator(extra=0)
-    def plus_this(func, args, kwargs, extra):
+    def plus_this(func, *args, extra, **kwargs):
         return func(*args, **kwargs) + extra
 
     @plus_this(extra=5)
@@ -169,7 +169,7 @@ def test_basic_function_decorator():
     log = []
 
     @evn.make_decorator
-    def logger(func, args, kwargs):
+    def logger(func, *args, **kwargs):
         log.append(f'calling {func.__name__}')
         return func(*args, **kwargs)
 
@@ -187,7 +187,7 @@ def test_configurable_decorator_default_and_override():
     log = []
 
     @evn.make_decorator(prefix='>> ')
-    def trace(func, args, kwargs, prefix):
+    def trace(func, *args, prefix, **kwargs):
         log.append(prefix + func.__name__)
         return func(*args, **kwargs)
 
@@ -207,7 +207,7 @@ def test_configurable_decorator_default_and_override():
 def test_strict_mode_disallows_unknown_config():
 
     @evn.make_decorator(msg='ok', strict=True)
-    def f(func, args, kwargs, msg):
+    def f(func, *args, msg, **kwargs):
         return func(*args, **kwargs)
 
     with pytest.raises(TypeError):
@@ -225,7 +225,7 @@ def test_non_callable_userwrap_raises():
 def test_decorator_metadata_preserved():
 
     @evn.make_decorator
-    def dummy(func, args, kwargs):
+    def dummy(func, *args, **kwargs):
         return func(*args, **kwargs)
 
     @dummy
@@ -241,7 +241,7 @@ def test_decorator_metadata_preserved():
 def test_decorator_on_instance_method():
 
     @evn.make_decorator(extra=1)
-    def bump(func, args, kwargs, extra):
+    def bump(func, *args, extra, **kwargs):
         return func(*args, **kwargs) + extra
 
     class Thing:
@@ -257,7 +257,7 @@ def test_decorator_on_instance_method():
 def test_decorator_on_class_entirely():
 
     @evn.make_decorator(suffix=1)
-    def plus(func, args, kwargs, suffix):
+    def plus(func, *args, suffix, **kwargs):
         return func(*args, **kwargs) + suffix
 
     @plus(suffix=5)
@@ -278,7 +278,7 @@ def test_classmethod_and_staticmethod_wrapping():
     calls = []
 
     @evn.make_decorator(tag='')
-    def logcall(func, args, kwargs, tag):
+    def logcall(func, *args, tag, **kwargs):
         calls.append(f'{tag}:{func.__name__}')
         return func(*args, **kwargs)
 
@@ -301,7 +301,7 @@ def test_classmethod_and_staticmethod_wrapping():
 def test_nested_configuration_application():
 
     @evn.make_decorator(greeting='hi')
-    def greeter(func, args, kwargs, greeting):
+    def greeter(func, *args, greeting, **kwargs):
         return f'{greeting}, {func(*args, **kwargs)}'
 
     @greeter

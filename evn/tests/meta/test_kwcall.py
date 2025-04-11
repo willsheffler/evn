@@ -10,7 +10,7 @@ config_test = evn.Bunch(
 
 
 def main():
-    evn.tests.maintest(
+    evn.testing.quicktest(
         namespace=globals(),
         config=config_test,
         verbose=1,
@@ -20,7 +20,7 @@ def main():
 
 def test_locals():
     foo, bar, baz = 1, 2, 3
-    assert evn.meta.picklocals('foo bar') == dict(foo=1, bar=2)
+    assert evn.meta.picklocals('foo bar', asdict=True) == dict(foo=1, bar=2)
 
 
 def test_addreduce():
@@ -34,7 +34,7 @@ def test_get_function_for_which_call_to_caller_is_argument():
         ...
 
     def CALLED_TO_PRODUCE_ARGUMENT():
-        uncle_func = evn.get_function_for_which_call_to_caller_is_argument()
+        uncle_func = evn.meta.get_function_for_which_call_to_caller_is_argument()
         assert uncle_func == FIND_THIS_FUNCTION
 
     FIND_THIS_FUNCTION(1, 2, CALLED_TO_PRODUCE_ARGUMENT(), 3)

@@ -81,7 +81,6 @@ import re
 import functools
 import inspect
 import operator
-import sys
 
 import evn
 
@@ -95,8 +94,7 @@ def instanceof(obj_or_types, types=None):
     return lambda obj: isinstance(obj, obj_or_types)
 
 
-@evn.iterize_on_first_param(asdict=True)
-def picklocals(name, idx=None):
+def picklocals(name, idx=None, asdict=False):
     """Accesses a local variable from the caller's caller frame.
 
     This function retrieves the value of a local variable from the frame two levels up in the call stack.
@@ -119,15 +117,21 @@ def picklocals(name, idx=None):
         20
 
     """
-    if sys.version_info.minor < 12:
-        val = inspect.currentframe().f_back.f_back.f_back.f_locals[
-            name]  # type: ignore
-    else:
-        val = inspect.currentframe().f_back.f_back.f_locals[
-            name]  # type: ignore
-    if idx is None:
-        return val
-    return val[idx]
+    single = False
+    if isinstance(name, str):
+        name, single = name.split(), True
+        single &= len(name) == 1
+
+    result = {}
+    for n in name:
+        # if sys.version_info.minor < 12:
+            # val = inspect.currentframe().f_back.f_locals[n]  # type: ignore
+        # else:
+        val = inspect.currentframe().f_back.f_locals[n]  # type: ignore
+        result[n] = val if idx is None else val[idx]
+    if asdict: return result
+    result = list(result.values())
+    return result[0] if single else result
 
 
 def opreduce(op, iterable):
@@ -407,9 +411,8 @@ def func_params(func, required_only=False):
     Example:
     >>> def my_func(a, b, c=1):
     ...     pass
-    >>> print(func_params(my_func))
-    OrderedDict({'a': <Parameter "a">, 'b': <Parameter "b">, 'c': <Parameter "c=1">})
-
+    >>> print(dict(func_params(my_func)))
+    {'a': <Parameter "a">, 'b': <Parameter "b">, 'c': <Parameter "c=1">}
     >>> print(func_params(my_func, required_only=True))
     {'a': <Parameter "a">, 'b': <Parameter "b">}
     """

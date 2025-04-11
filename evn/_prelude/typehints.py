@@ -1,42 +1,38 @@
 import sys
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    cast as cast,
-    IO,
-    Iterator,
-    TypeVar,
-    Union,
-)
+from typing import    cast as cast
 
 if sys.version_info.minor >= 10:
-    from typing import ParamSpec
+    import typing as t
+    # from typing import t.ParamSpec
 else:
-    from typing_extensions import ParamSpec
+    import typing_extensions as t
+    # from typing_extensions import t.ParamSpec
 
-KW = dict[str, Any]
-IOBytes = IO[bytes]
-IO = IO[str]
+KW = dict[str, t.Any]
+IOBytes = t.IO[bytes]
+IO = t.IO[str]
 """Type alias for keyword arguments represented as a dictionary with string keys and any type of value."""
 
-FieldSpec = Union[str, list[str], tuple[str], Callable[..., str], tuple]
-EnumerIter = Iterator[int]
-EnumerListIter = Iterator[list[Any]]
+FieldSpec = t.Union[str, list[str], tuple[str], t.Callable[..., str], tuple]
+EnumerIter = t.Iterator[int]
+EnumerListIter = t.Iterator[list[t.Any]]
 
-T = TypeVar('T')
-R = TypeVar('R')
-C = TypeVar('C')
-if sys.version_info.minor >= 10 or TYPE_CHECKING:
-    P = ParamSpec('P')
-    F = Callable[P, R]
+T = t.TypeVar('T')
+R = t.TypeVar('R')
+C = t.TypeVar('C')
+if sys.version_info.minor >= 10 or t.TYPE_CHECKING:
+    P = t.ParamSpec('P')
+    F = t.Callable[P, R]
 else:
-    P = TypeVar('P')
-    P.args = list[Any]
+    P = t.TypeVar('P')
+    P.args = list[t.Any]
     P.kwargs = KW
-    F = Callable[[Any, ...], R]
+    F = t.Callable[[t.Any, ...], R]
 
 
-def basic_typevars(which) -> list[Union[TypeVar, ParamSpec]]:
+def basic_typevars(which) -> list[t.Union[t.TypeVar, t.ParamSpec]]:
     result = [globals()[k] for k in which]
     return result
+
+def annotype(typ:type, info) -> t.Annotated:
+    return t.Annotated[typ, info]

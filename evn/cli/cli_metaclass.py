@@ -46,8 +46,7 @@ import functools
 from evn.cli.auto_click_decorator import auto_click_decorate_command
 from evn.cli.cli_registry import CliRegistry
 from evn.cli.cli_logger import CliLogger
-from evn.cli.click_type_handler import ClickTypeHandlers
-
+from evn.cli.click_type_handler import ClickTypeHandler, ClickTypeHandlers
 
 def cls_to_groupname(cls):
     """
@@ -90,7 +89,7 @@ class CliMeta(type):
     # there are NOT ACTUALLY USED just to make the type checker happy
     __group__: click.Group
     __parent__: 'CLI | None'
-    __type_handlers__: ClickTypeHandlers
+    __type_handlers__: 'ClickTypeHandlers | list[ClickTypeHandler]'
     __all_type_handlers__: list[ClickTypeHandlers]
     _config: classmethod
     _log: typing.Callable[['dict|str'], None]
@@ -104,10 +103,13 @@ class CliMeta(type):
 
         cls._log, cls.__log__ = log, []
         cls.__all_type_handlers__ = []
-        for base in cls.__mro__:
-            handlers = ClickTypeHandlers(getattr(base, '__type_handlers__',
-                                                 {}))
-            cls.__all_type_handlers__.append(handlers)
+        if hasattr(cls, '__type_handlers__'):
+            cls.__type_handlers__ = ClickTypeHandlers(cls.__type_handlers__)
+        else:
+            cls.__type_handlers__ = []
+        for base in cls.__mro__[:-1]:
+            handlers = ClickTypeHandlers(getattr(base, '__type_handlers__', []))
+            if handlers: cls.__all_type_handlers__.append(handlers)
 
         if callback := cls.__dict__.get('_callback', None):
             callback = cls_to_instance_method(cls)(callback)
