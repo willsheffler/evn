@@ -153,7 +153,7 @@ def to_renderable(obj,
         return obj
     # if nohomog and evn.homog.is_tensor(obj): obj = obj[..., :3]
     s = str(evn.summary(obj))
-    assert "'" not in s
+    assert "'" not in s, s
     for pattern, replace in textmap.items():
         if '__REGEX__' in textmap and textmap['__REGEX__']:
             s = re.sub(pattern, replace, s)

@@ -21,9 +21,10 @@ def helper_test_filter_python_output(text, ref, preset):
 
 def test_transform_fileref_to_python_format():
     from evn.tool.filter_python_output import transform_fileref_to_python_format as tf
-    new = tf('evn/_prelude/chrono.py:63: TypeError', None)
+    new = tf('evn/_prelude/chrono.py:63: TypeError')
     assert new == '  File "evn/_prelude/chrono.py", line 63, ...'
-
+    new2 = tf('/home/sheffler/evn/evn/cli/__init__.py:32: DocTestFailure')
+    assert new2 == '  File "/home/sheffler/evn/evn/cli/__init__.py", line 32, ...'
 
 # @pytest.mark.xfail
 def test_filter_python_output_whitespace():

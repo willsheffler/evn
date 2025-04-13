@@ -4,9 +4,6 @@ import typing as t
 from time import perf_counter
 from dataclasses import dataclass, field
 
-from evn._prelude.lazy_import import lazyimport
-
-np = lazyimport('numpy')
 import evn
 from evn._prelude.make_decorator import make_decorator
 
@@ -183,13 +180,18 @@ evn.chronometer = Chrono('main')
 
 def chrono_enter_scope(name, **kw):
     global chronometer
-    t = kw.get('chrono', evn.chronometer)
-    t.enter_scope(name, **kw)
+    chrono = kw.get('chrono', evn.chronometer)
+    chrono.enter_scope(name, **kw)
 
 def chrono_exit_scope(name, **kw):
     global chronometer
-    t = kw.get('chrono', evn.chronometer)
-    t.exit_scope(name, **kw)
+    chrono = kw.get('chrono', evn.chronometer)
+    chrono.exit_scope(name, **kw)
+
+def chrono_checkpoint(name, **kw):
+    global chronometer
+    chrono = kw.get('chrono', evn.chronometer)
+    chrono.checkpoint(name, **kw)
 
 @make_decorator(chrono=evn.chronometer)
 def chrono(wrapped, *args, chrono=None, **kw):

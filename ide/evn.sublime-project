@@ -32,13 +32,19 @@
         {
             "name": "run_tests_for_file",
             "working_dir": "$folder",
-            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_for_file.py --quiet evn --filter-output $file 2>&1 | tee $folder/ide/sublime_build.log",
+            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_for_file.py --quiet evn --filter-output  $file 2>&1 | tee $folder/ide/sublime_build.log",
             "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
         },
         {
             "name": "run_tests_for_file pytest",
             "working_dir": "$folder",
             "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_for_file.py --quiet evn --pytest --filter-output $file 2>&1 | tee $folder/ide/sublime_build.log",
+            "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
+        },
+        {
+            "name": "run evn",
+            "working_dir": "$folder",
+            "shell_cmd": "PYTHONPATH=. \\$PYTHON -m evn run dispatch file 2>&1 | tee $folder/ide/sublime_build.log",
             "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
         },
         {

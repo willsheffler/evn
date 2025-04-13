@@ -4,7 +4,9 @@ build-backend = 'scikit_build_core.build'
 
 [project]
 name = 'evn'
-version = '0.1.0'
+version = '0.7.1'
+# dynamic = ["version"]
+# version_variable = "evn/__init__.py:__version__"
 requires-python = '>=3.9'
 dependencies = [
     'assertpy',
@@ -12,6 +14,7 @@ dependencies = [
     'icecream',
     'json5',
     'ninja_import',
+    'more_itertools',
     'multipledispatch',
     'PrettyPrintTree',
     'pyyaml',
@@ -19,7 +22,7 @@ dependencies = [
     'rich',
     'ruff',
     'tomli',
-    'typing_extensions; python_version < "3.10"',
+    'typing_extensions',
     'wrapt',
 ]
 
@@ -38,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-evn = 'evn.tool.__main__:main'
+evn = 'evn.__main__:main'
 
 [tool.pytest.ini_options]
 minversion = '8'

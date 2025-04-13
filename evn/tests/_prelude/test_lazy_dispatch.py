@@ -6,49 +6,9 @@ import pytest
 import evn
 from evn._prelude.lazy_dispatch import GLOBAL_DISPATCHERS, lazydispatch, LazyDispatcher
 
-
-class FakeArray:
-
-    def __init__(self, size):
-        self.size = size
-        self.shape = (size, )
-
-
-FakeArray.__name__ = 'ndarray'
-FakeArray.__qualname__ = 'ndarray'
-FakeArray.__module__ = 'numpy'
-
-
-class FakeTensor:
-
-    def __init__(self, numel):
-        self._numel = numel
-        self.shape = (numel, )
-
-    def numel(self):
-        return self._numel
-
-
-FakeTensor.__name__ = 'Tensor'
-FakeTensor.__qualname__ = 'torch.Tensor'
-
-
-@pytest.fixture
-def fake_numpy_module():
-    module = types.ModuleType('numpy')
-    module.ndarray = FakeArray
-    sys.modules['numpy'] = module
-    yield module
-    del sys.modules['numpy']
-
-
-@pytest.fixture
-def fake_torch_module():
-    module = types.ModuleType('torch')
-    module.Tensor = FakeTensor
-    sys.modules['torch'] = module
-    yield module
-    del sys.modules['torch']
+def main():
+    import evn
+    evn.testing.quicktest(namespace=globals())
 
 
 def test_dispatch_deco():
@@ -62,7 +22,7 @@ def test_dispatch_deco():
 
 def test_dispatch_deco_nest():
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def foo(obj):
         print(obj)
 
@@ -72,7 +32,7 @@ def test_dispatch_deco_nest():
 def test_dispatch_global_registry():
     GLOBAL_DISPATCHERS.clear()
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def describe(obj):
         return 'default'
 
@@ -86,7 +46,7 @@ def test_dispatch_global_registry():
 def test_dispatchers_match():
     GLOBAL_DISPATCHERS.clear()
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def describe(obj):
         return 'default'
 
@@ -102,14 +62,14 @@ def test_dispatchers_match():
     assert describe1 is evn.first(GLOBAL_DISPATCHERS.values())
     assert describe1 is describe2
 
-    assert describe([1, 2]) == 'list'
+    assert describe([1, 2]) == 'list', str(describe([1, 2]))
     assert describe(42) == 'default'
 
 
 def test_dispatch_default():
     GLOBAL_DISPATCHERS.clear()
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def describe(obj):
         return 'default'
 
@@ -126,9 +86,10 @@ def test_dispatch_default():
     assert describe(42) == 'default'
 
 
-def test_lazy_registration_numpy(fake_numpy_module):
+def test_lazy_registration_numpy():
+    numpy = pytest.importorskip('numpy')
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def describe(obj):
         return 'default'
 
@@ -136,13 +97,13 @@ def test_lazy_registration_numpy(fake_numpy_module):
     def describe(obj):
         return f'ndarray({obj.size})'
 
-    arr = fake_numpy_module.ndarray(5)
-    assert describe(arr) == 'ndarray(5)'
+    assert describe(numpy.arange(3)) == 'ndarray(3)'
 
 
-def test_lazy_registration_torch(fake_torch_module):
+def test_lazy_registration_torch():
+    torch = pytest.importorskip('torch')
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def summary(obj):
         return 'base'
 
@@ -156,7 +117,7 @@ def test_lazy_registration_torch(fake_torch_module):
 
 def test_scope_global_allows_shared_name():
 
-    @lazydispatch(scope='global')
+    @lazydispatch(object, scope='global')
     def compute(obj):
         return 'default'
 
@@ -170,7 +131,7 @@ def test_scope_global_allows_shared_name():
 
 def test_scope_local_disambiguation():
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def action(obj):
         return 'default'
 
@@ -184,7 +145,7 @@ def test_scope_local_disambiguation():
 
 def test_unresolved_type_skips():
 
-    @lazydispatch(scope='local')
+    @lazydispatch(object, scope='local')
     def handler(obj):
         return 'base'
 
@@ -206,3 +167,97 @@ def test_missing_dispatcher_errors():
             return 'fail'
 
         print(nothing(5))
+
+def test_predicate_registration():
+    GLOBAL_DISPATCHERS.clear()
+
+    @lazydispatch(object, scope='local')
+    def describe(obj):
+        return 'default'
+
+    @lazydispatch(predicate=lambda x: isinstance(x, tuple), scope='local')
+    def describe(obj):
+        return 'tuple'
+
+    assert callable(describe), str(describe)
+    assert describe(5) == 'default'
+    assert describe((15, 13)) == 'tuple'
+
+def test_lazydispatch_int():
+    @lazydispatch(int)
+    def int_func(obj):
+        return obj + 1
+
+    assert int_func(5) == 6
+
+def test_lazydispatch_int_type():
+    @lazydispatch(int)
+    def int_func2(obj):
+        return obj + 1
+
+    assert int_func2(5) == 6
+
+    @lazydispatch(type)
+    def int_func2(obj):
+        return f'type: {str(obj)}'
+
+    assert int_func2(5) == 6
+    assert int_func2(int) == 'type: <class \'int\'>'
+
+def test_lazydispatch_int_type_pred():
+    @lazydispatch(int)
+    def int_func3(obj):
+        return obj + 1
+
+    assert int_func3(5) == 6
+
+    @lazydispatch(type)
+    def int_func3(obj):
+        return f'type: {str(obj)}'
+
+    assert int_func3(5) == 6
+    assert int_func3(int) == 'type: <class \'int\'>'
+
+    @lazydispatch(predicate=lambda x: isinstance(x, list))
+    def int_func3(obj):
+        return f'list: {str(obj)}'
+
+    assert int_func3(5) == 6
+    assert int_func3(int) == 'type: <class \'int\'>'
+    assert int_func3([1, 2, 3]) == 'list: [1, 2, 3]'
+
+
+def test_lazydispatch_int_type_pred_func():
+    @lazydispatch(object)
+    def int_func4(obj):
+        return str(obj)
+
+    assert int_func4(5) == '5'
+
+    @lazydispatch(type)
+    def int_func4(obj):
+        return f'type: {str(obj)}'
+
+    assert int_func4(5) == '5'
+    assert int_func4(int) == 'type: <class \'int\'>'
+
+    @lazydispatch(predicate=lambda x: isinstance(x, list))
+    def int_func4(obj):
+        return f'list: {str(obj)}'
+
+    assert int_func4(5) == '5'
+    assert int_func4(int) == 'type: <class \'int\'>'
+    assert int_func4([1, 2, 3]) == 'list: [1, 2, 3]'
+
+    # return 0
+    @lazydispatch(types.FunctionType)
+    def int_func4(obj):
+        return f'func: {str(obj)}'
+
+    assert int_func4(5) == '5'
+    assert int_func4(int) == 'type: <class \'int\'>'
+    assert int_func4([1, 2, 3]) == 'list: [1, 2, 3]'
+    assert int_func4(lambda: 'lambda').startswith('func:')
+
+if __name__ == '__main__':
+    main()

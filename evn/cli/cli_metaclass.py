@@ -190,6 +190,10 @@ class CLI(metaclass=CliMeta):
         cls._root().__group__()
 
     @classmethod
+    def _run_this(cls):
+        cls.__group__()
+
+    @classmethod
     def _root(cls):
         while cls.__parent__:
             cls = cls.__parent__
@@ -232,7 +236,9 @@ def cls_to_instance_method(cls):
 
         @functools.wraps(func)
         def wrap(*a, **kw):
-            return func(cls(), *a, **kw)
+            instance = cls()
+            # print(cls, func)
+            return func(instance, *a, **kw)
 
         return wrap
 

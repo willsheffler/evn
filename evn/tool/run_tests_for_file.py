@@ -18,6 +18,7 @@ import sys
 import subprocess
 from ninja_import import ninja_import
 from fnmatch import fnmatch
+import functools
 from collections import defaultdict
 from assertpy import assert_that
 from io import StringIO
@@ -50,6 +51,7 @@ def get_args(sysargv):
     args = parser.parse_args(sysargv[1:])
     return args.__dict__
 
+@functools.cache
 def file_has_main(fname):
     "check if file has a main block"
     if not os.path.exists(fname):
@@ -164,14 +166,17 @@ def make_build_cmds(
     basename = os.path.basename(fname)
     if uv: python = f'uv run --extra dev --python {python}'
     pypath = f'PYTHONPATH={":".join(p for p in sys.path if "python3" not in p)}'
-    test_with_no_main = not file_has_main(fname) and basename.startswith('test_')
+    has_main = file_has_main(fname)
+    is_test = basename.startswith('test_')
+    if not is_test and 'doctest-mod' not in pytest_args:
+        pytest_args += ' --doctest-modules'
     if fname.endswith('.rst'):
         cmd = f'{pypath} {python} -m doctest {module_fname}'
-    elif pytest or test_with_no_main:
+    elif is_test and (pytest or not has_main):
         if module_fname == fname: fname = ''
-        if test_with_no_main: print('running pytest because no main')
+        if is_test and not has_main: print('running pytest because no main')
         cmd = f'{pypath} {python} -m pytest {pytest_args} {module_fname} {fname}'
-    elif fname.endswith('.py') and basename != 'conftest.py':
+    elif fname.endswith('.py') and has_main and basename != 'conftest.py':
         cmd = f'{pypath} {python} {fname}'
     else:
         cmd = f'{pypath} {python} -mpytest {pytest_args}'

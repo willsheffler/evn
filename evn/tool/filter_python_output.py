@@ -52,7 +52,6 @@ presets = dict(
 )
 
 re_blank = re.compile(r'(?:^[ \t]*\n){2,}', re.MULTILINE)
-re_file_alt = re.compile(r'^E?\s*(.+?\.py):([0-9]+): .*')
 re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
 re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
 re_null = r'a^'  # never matches
@@ -104,9 +103,12 @@ def filter_python_output(
     new = os.linesep.join(result)
     return new
 
-def transform_fileref_to_python_format(line, match):
+re_file_alt = re.compile(r'^E?\s*(.+?\.py):([0-9]+): .*')
+def transform_fileref_to_python_format(line, match=None):
     """
+    examples
     '  File "/home/sheffler/evn/evn/tests/_prelude/test_chrono.py", line 96, ...'
+    /home/sheffler/evn/evn/cli/__init__.py:32: DocTestFailure
     """
     match = match or re_file_alt.match(line)
     return f'  File "{match.group(1)}", line {match.group(2)}, ...'

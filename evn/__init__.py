@@ -1,3 +1,5 @@
+# __version__ = '0.7.1'
+
 from time import perf_counter
 from pathlib import Path as Path
 
@@ -53,7 +55,6 @@ import builtins
 builtins.ic = ic  # make ic available globally
 
 evn_init_checkpoint('INIT evn basic imports')
-from evn._prelude.version import __version__ as __version__
 from evn._prelude.basic_types import (
     NA as NA,
     NoOp as NoOp,
@@ -111,7 +112,8 @@ from evn._prelude.chrono import (
     Chrono as Chrono,
     chrono as chrono,
     chrono_enter_scope as chrono_enter_scope,
-    chrono_exit_scope,
+    chrono_exit_scope as chrono_exit_scope,
+    chrono_checkpoint as chrono_checkpoint
 )
 from evn.decofunc import (
     iterize_on_first_param as iterize_on_first_param,
