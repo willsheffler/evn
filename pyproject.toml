@@ -51,6 +51,7 @@ testpaths = ['evn']
 markers = [
     'slow: marks tests as slow to run',
     'ci: tests that should only run in ci',
+    'noci: tests that should not run in ci',
 ]
 
 

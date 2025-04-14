@@ -29,7 +29,7 @@ def test_matrix(session):
     print(f'Installing {whl}')
     session.install(whl)
     session.run(*'mkdir -p tmp; cd tmp'.split())
-    session.run(*'pytest --doctest-modules --ignore evn/format --ignore evn/tests/format --pyargs evn'.split())
+    session.run(*'pytest --doctest-modules --ignore evn/tests/_prelude/test_chrono.py --ignore evn/format --ignore evn/tests/format --pyargs evn'.split())
 
 
 def get_supported_tags_session(session):
