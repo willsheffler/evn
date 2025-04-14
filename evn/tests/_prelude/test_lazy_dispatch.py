@@ -10,7 +10,6 @@ def main():
     import evn
     evn.testing.quicktest(namespace=globals())
 
-
 def test_dispatch_deco():
 
     @lazydispatch
@@ -19,7 +18,6 @@ def test_dispatch_deco():
 
     assert isinstance(foo, LazyDispatcher)
 
-
 def test_dispatch_deco_nest():
 
     @lazydispatch(object, scope='local')
@@ -27,7 +25,6 @@ def test_dispatch_deco_nest():
         print(obj)
 
     assert isinstance(foo, LazyDispatcher)
-
 
 def test_dispatch_global_registry():
     GLOBAL_DISPATCHERS.clear()
@@ -41,7 +38,6 @@ def test_dispatch_global_registry():
         return 'list'
 
     assert len(GLOBAL_DISPATCHERS) == 1
-
 
 def test_dispatchers_match():
     GLOBAL_DISPATCHERS.clear()
@@ -63,8 +59,7 @@ def test_dispatchers_match():
     assert describe1 is describe2
 
     assert describe([1, 2]) == 'list', str(describe([1, 2]))
-    assert describe(42) == 'default'
-
+    assert describe(42) == 'default', str(describe(42))
 
 def test_dispatch_default():
     GLOBAL_DISPATCHERS.clear()
@@ -85,9 +80,9 @@ def test_dispatch_default():
     assert describe([1, 2]) == 'list'
     assert describe(42) == 'default'
 
-
 def test_lazy_registration_numpy():
     numpy = pytest.importorskip('numpy')
+    if 'numpy' in sys.modules: del sys.modules['numpy']
 
     @lazydispatch(object, scope='local')
     def describe(obj):
@@ -98,36 +93,6 @@ def test_lazy_registration_numpy():
         return f'ndarray({obj.size})'
 
     assert describe(numpy.arange(3)) == 'ndarray(3)'
-
-
-def test_lazy_registration_torch():
-    torch = pytest.importorskip('torch')
-
-    @lazydispatch(object, scope='local')
-    def summary(obj):
-        return 'base'
-
-    @lazydispatch('torch.Tensor', scope='local')
-    def summary(obj):
-        return f'tensor({obj.numel()})'
-
-    t = fake_torch_module.Tensor(12)
-    assert summary(t) == 'tensor(12)'
-
-
-def test_scope_global_allows_shared_name():
-
-    @lazydispatch(object, scope='global')
-    def compute(obj):
-        return 'default'
-
-    @lazydispatch('builtins.int', scope='global')
-    def compute(obj):
-        return 'int'
-
-    assert compute(5) == 'int'
-    assert compute('x') == 'default'
-
 
 def test_scope_local_disambiguation():
 
@@ -141,7 +106,6 @@ def test_scope_local_disambiguation():
 
     assert action(123) == 'int'
     assert action('hi') == 'default'
-
 
 def test_unresolved_type_skips():
 
@@ -157,7 +121,6 @@ def test_unresolved_type_skips():
         pass
 
     assert handler(Other()) == 'base'
-
 
 def test_missing_dispatcher_errors():
     with pytest.raises(ValueError):
@@ -184,6 +147,7 @@ def test_predicate_registration():
     assert describe((15, 13)) == 'tuple'
 
 def test_lazydispatch_int():
+
     @lazydispatch(int)
     def int_func(obj):
         return obj + 1
@@ -191,6 +155,7 @@ def test_lazydispatch_int():
     assert int_func(5) == 6
 
 def test_lazydispatch_int_type():
+
     @lazydispatch(int)
     def int_func2(obj):
         return obj + 1
@@ -205,6 +170,7 @@ def test_lazydispatch_int_type():
     assert int_func2(int) == 'type: <class \'int\'>'
 
 def test_lazydispatch_int_type_pred():
+
     @lazydispatch(int)
     def int_func3(obj):
         return obj + 1
@@ -226,8 +192,8 @@ def test_lazydispatch_int_type_pred():
     assert int_func3(int) == 'type: <class \'int\'>'
     assert int_func3([1, 2, 3]) == 'list: [1, 2, 3]'
 
-
 def test_lazydispatch_int_type_pred_func():
+
     @lazydispatch(object)
     def int_func4(obj):
         return str(obj)

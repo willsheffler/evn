@@ -1,9 +1,8 @@
 import re
-
-# lazy_dispatch.py
 import contextlib
 import sys
 from functools import wraps
+from importlib import import_module
 from typing import Callable, Union, Optional
 
 GLOBAL_DISPATCHERS: dict[str, 'LazyDispatcher'] = {}
@@ -51,7 +50,8 @@ class LazyDispatcher:
         typ: Union[str, type] = NoType,
         predicate: Callable[[type], bool] = NoPred,
     ):
-        if predicate is NoPred: self._registry[typ] = func
+        if typ is object: self._base_func = func
+        elif predicate is NoPred: self._registry[typ] = func
         else: self._predicate_registry[predicate] = func
         return self
 
@@ -93,12 +93,23 @@ class LazyDispatcher:
 
         for key, func in self._registry.items():
             if debug: print('unfound key', key, obj)
-            assert isinstance(key, type)
-            if isinstance(obj, key):
-                self._registry[type(obj)] = func
-                return func(obj, *args, **kwargs)
-
+            if key := self.check_type(key):
+                if isinstance(obj, key):
+                    self._registry[type(obj)] = func
+                    return func(obj, *args, **kwargs)
         return self._base_func(obj, *args, **kwargs)
+
+    def check_type(self, key):
+        if isinstance(key, type): return key
+        if isinstance(key, str):
+            modname, _, typename = key.rpartition('.')
+            try:
+                import_module(modname)
+                self._resolve_lazy_types()
+                return self._resolved_types[key]
+            except ImportError:
+                return None
+        # raise TypeError(f'Key {key} is not a type or str of type')
 
 def lazydispatch(
     arg=None,
