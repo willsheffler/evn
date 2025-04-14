@@ -8,7 +8,7 @@ from packaging.tags import sys_tags
 
 nox.options.sessions = ['test_matrix']
 # nox.options.sessions = ['test_matrix', 'build']
-sesh = dict(python=['3.9', '3.10', '3.11', '3.12', '3.13'], venv_backend='uv')
+sesh = dict(python=['3.10', '3.11', '3.12', '3.13'], venv_backend='uv')
 
 
 @nox.session(**sesh)
@@ -19,15 +19,15 @@ def test_matrix(session):
         session.skip(f"Skipping {session.python} because it's not in posargs {session.posargs}")
     # session.install(*'.[dev]'.split())
     # session.run('doit test')
-    whl = select_wheel(session)
-    print(f'Installing {whl}')
-    session.install(f'{whl}')
     with open('pyproject.toml', 'rb') as f:
         conf = tomli.load(f)
         deps = conf['project']['dependencies']
         deps += conf['project']['optional-dependencies']['dev']
-    print(deps)
     session.install(*deps)
+    print(deps)
+    whl = select_wheel(session)
+    print(f'Installing {whl}')
+    session.install(f'{whl}')
     session.run(*'pytest --doctest-modules --pyargs evn'.split())
 
 

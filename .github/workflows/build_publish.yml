@@ -58,7 +58,7 @@ jobs:
       - name: Test wheels
         run: |
           echo "Testing wheels with nox"
-          uv tool run nox
+          uv run --extra dev nox
 
       - uses: actions/upload-artifact@v4
         with:
