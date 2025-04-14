@@ -97,6 +97,7 @@ class LazyDispatcher:
                 if isinstance(obj, key):
                     self._registry[type(obj)] = func
                     return func(obj, *args, **kwargs)
+
         return self._base_func(obj, *args, **kwargs)
 
     def check_type(self, key):
