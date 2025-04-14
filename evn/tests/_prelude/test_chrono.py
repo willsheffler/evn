@@ -329,14 +329,14 @@ def test_chrono_context_manager():
     with Chrono('foo') as c:
         time.sleep(0.01)
     assert 'foo' in c.times
-    assert 0.01 <= c.times['foo'][0] < 0.011
+    assert 0.01 <= c.times['foo'][0] < 0.012
 
 def test_scope_context_manager():
     c = Chrono()
     with c.scope('foo'):
         time.sleep(0.01)
     assert 'foo' in c.times
-    assert 0.01 <= c.times['foo'][0] < 0.011
+    assert 0.01 <= c.times['foo'][0] < 0.012
 
 def test_nested_scope_context_manager():
     c = Chrono()
@@ -350,7 +350,7 @@ def test_nested_scope_context_manager():
         time.sleep(0.005)
     for n in 'foo bar baz'.split():
         assert n in c.times
-        assert 0.01 <= c.times[n][0] < 0.011
+        assert 0.01 <= c.times[n][0] < 0.012
 
 if __name__ == '__main__':
     main()

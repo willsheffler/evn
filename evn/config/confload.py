@@ -1,3 +1,4 @@
+import socket
 import tomli
 from pathlib import Path
 import os
@@ -15,7 +16,7 @@ CONFIG_PATHS = dict(
     application_defaults=lambda: {},
     pyproject_toml=lambda: load_pyproject_toml(Path('pyproject.toml')),
     user_local_dev_config=lambda: load_toml_layer(
-        XDG_CONFIG_HOME / 'dev' / 'local' / f'{os.uname().nodename}.toml'),
+        XDG_CONFIG_HOME / 'dev' / 'local' / f'{socket.gethostname()}.toml'),
     user_project_config=lambda: load_toml_layer(
         Path('local/{getpass.getuser()}/userconfig.toml')),
     environment_vars=lambda: load_env_layer('EVN_'),
