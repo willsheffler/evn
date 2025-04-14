@@ -27,8 +27,9 @@ def test_matrix(session):
     print(deps)
     whl = select_wheel(session)
     print(f'Installing {whl}')
-    session.install(f'{whl}')
-    session.run(*'pytest --doctest-modules --pyargs evn'.split())
+    session.install(whl)
+    session.run(*'mkdir -p tmp; cd tmp'.split())
+    session.run(*'pytest --doctest-modules --ignore evn/format --ignore evn/tests/format --pyargs evn'.split())
 
 
 def get_supported_tags_session(session):

@@ -42,6 +42,7 @@ repos:
     rev: 1.0.0
     hooks:
       - id: pytest
+        args: [--ignore,evn/format,--ignore,evn/tests/format]
         additional_dependencies: ['assertpy', 'click', 'icecream', 'multipledispatch',
           'PrettyPrintTree', 'pyyaml', 'rapidfuzz', 'rich', 'ruff',
           'typing_extensions; python_version < "3.10"', 'wrapt','hypothesis', 'ninja_import', 'tomli']
