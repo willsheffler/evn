@@ -3,7 +3,7 @@ import fnmatch
 import json
 from pathlib import Path
 
-from typing import Union
+import typing as t
 from functools import cached_property
 
 import click
@@ -50,7 +50,7 @@ class FileTree(dict):
             }
         }
 
-def scan_dir(path: Path, opaque: list[str], follow_symlinks=False) -> Union[FileTree, FilePath]:
+def scan_dir(path: Path, opaque: list[str], follow_symlinks=False) -> t.Union[FileTree, FilePath]:
     name = path.name
     if any(fnmatch.fnmatch(name, pat) for pat in opaque):
         return FilePath(path)
@@ -74,8 +74,9 @@ def scan_dir(path: Path, opaque: list[str], follow_symlinks=False) -> Union[File
         return FilePath(path)
     return tree
 
-def find_big(tree: Union[FileTree, FilePath], threshold: int,
-             max_children: int) -> list[Union[FileTree, FilePath]]:
+def find_big(tree: t.Union[FileTree, FilePath], threshold: int | str,
+             max_children: int) -> list[t.Union[FileTree, FilePath]]:
+    threshold = evn.cast(int, threshold)
     if tree.size < threshold: return []
     if isinstance(tree, FilePath): return [tree]
 
@@ -83,7 +84,7 @@ def find_big(tree: Union[FileTree, FilePath], threshold: int,
     if sum(c[1].size for c in children[max_children:]) < threshold:
         return [v for _, v in children[:max_children]]
 
-    big: list[Union[FileTree, FilePath]] = [tree]
+    big: list[t.Union[FileTree, FilePath]] = [tree]
     for _, child in children:
         big.extend(find_big(child, threshold, max_children))
     return big
@@ -130,9 +131,9 @@ class SizeTypeHandler(evn.cli.ClickTypeHandler):
     __supported_types__ = {str: evn.cli.MetadataPolicy.REQUIRED}
 
     @classmethod
-    def typehint_to_click_paramtype(cls, typ, meta=None):
-        if typ is str and meta == ('size', ): return SizeParamType()
-        raise evn.cli.HandlerNotFoundError(f"Unsupported type: {typ} with meta: {meta}")
+    def typehint_to_click_paramtype(cls, basetype, metadata=None) -> click.ParamType:
+        if basetype is str and metadata == ('size', ): return SizeParamType()
+        raise evn.cli.HandlerNotFoundError(f"Unsupported type: {basetype} with metadata: {metadata}")
 
 def parse_size(size_str: str) -> int:
     size_str = size_str.strip().upper()
@@ -141,11 +142,11 @@ def parse_size(size_str: str) -> int:
         return int(float(size_str[:-1]) * units[size_str[-1]])
     return int(size_str)
 
-class SizeParamType:
+class SizeParamType(click.ParamType):
     __name__ = "size"
 
     # def convert(self, value, param, ctx):
-    def __call__(self, value):
+    def __call__(self, value, param=None, ctx=None):
         try:
             return parse_size(value)
         except Exception as e:
@@ -153,7 +154,7 @@ class SizeParamType:
 
 class BigStuff(evn.cli.CLI):
     __test__ = False
-    __type_handlers__ = SizeTypeHandler
+    __type_handlers__ = [SizeTypeHandler]
 
     def _callback(self, debug: bool = False, follow_symlinks: bool = False):
         """
@@ -167,7 +168,7 @@ class BigStuff(evn.cli.CLI):
 
     def scan(self,
              root: str,
-             threshold: evn.annotype(str, 'size') = '1m',
+             threshold: t.Annotated[str, 'size'] = '1m',
              max_children: int = 3,
              opaque: list[str] = ['.git', '__pycache__'],
              output: str = 'flat'):

@@ -77,21 +77,20 @@ format.docstring-code-format = true
 "__init__.py" = ["F403", "F401", "F405"]
 "**/test_*.py" = ["E501", "F841", "F403", 'F401', "F405", "F821", "F841", "F811"]
 
+
 [tool.pyright]
-exclude = [
-  "build",
-  "dist",
-  "**/__pycache__",
-  "evn/tests",
-]
-ignore = ["*.pyi"]
-include = ["evn"]
-venvPath = '/home/sheffler/sw/MambaForge/envs'
-venv = 'evn'
-# defineConstant = { DEBUG = true }
-typeCheckingMode = 'standard'
+venvPath = "/home/sheffler/miniforge3/envs"
+venv = "evn"
+pythonPlatform = "Linux"
+pythonVersion = "3.13"
+
+typeCheckingMode = "standard"
+defineConstant.DEBUG = true
+
 reportMissingImports = true
 reportMissingTypeStubs = false
 reportUnusedExpression = false
-pythonPlatform = 'Linux'
-pythonVersion = '3.13'
+
+include = ["evn"]
+ignore = ["legacy/"]
+exclude = ["evn/tests/"]  # Uncomment if needed

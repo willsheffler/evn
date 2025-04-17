@@ -48,7 +48,7 @@ class CliRegistry:
     def get_root_commands(cls) -> Dict[str, click.Group]:
         roots = {
             c.__group__.name: c.__group__
-            for c in cls._cli_classes if getattr(c, '__parent__') == evn.CLI
+            for c in cls._cli_classes if getattr(c, '__parent__') == evn.cli.CLI
         }
         return roots
 

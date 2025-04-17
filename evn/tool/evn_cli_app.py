@@ -1,9 +1,9 @@
 import sys
-from evn import CLI
 from pathlib import Path
+import evn
 
 # === Root CLI scaffold using inheritance-based hierarchy ===
-class EvnCLI(CLI):
+class EvnCLI(evn.cli.CLI):
     """
     Main entry point for the EVN developer workflow CLI.
     """
@@ -38,12 +38,17 @@ class EvnCLI(CLI):
         """
         return dict(help_option_names=['-h', '--help'])
 
-class dev(EvnCLI):
+class Dev(EvnCLI):
     "Development: edit, format, test a single file or unit."
 
-    pass
+class Create(Dev):
+    "Development: create files"
 
-class format(dev):
+    def testfile(self, sourcefile:Path, testfile:Path):
+        evn.code.make_testfile(sourcefile, testfile)
+
+
+class format(Dev):
 
     def stream(self, tab_width: int = 4, language: str = 'python'):
         """
@@ -54,7 +59,7 @@ class format(dev):
         :param language: Programming language (e.g. 'python').
         :type language: str
         """
-        print(f'[dev.format.stream] Format stream (tab_width={tab_width}, language={language})')
+        print(f'[Dev.format.stream] Format stream (tab_width={tab_width}, language={language})')
 
     def smart(self, mode: str = 'git'):
         """
@@ -63,9 +68,9 @@ class format(dev):
         :param mode: Change detection mode ('md5', 'git').
         :type mode: str
         """
-        print(f'[dev.format.smart] Format changed files using mode={mode}')
+        print(f'[Dev.format.smart] Format changed files using mode={mode}')
 
-class test(dev):
+class test(Dev):
 
     def file(self, fail_fast: bool = False):
         """
@@ -74,7 +79,7 @@ class test(dev):
         :param fail_fast: Stop after first failure.
         :type fail_fast: bool
         """
-        print(f'[dev.test.file] Run tests (fail_fast={fail_fast})')
+        print(f'[Dev.test.file] Run tests (fail_fast={fail_fast})')
 
     def swap(self, path: Path = Path('')):
         """
@@ -83,9 +88,9 @@ class test(dev):
         :param path: Path to swap.
         :type path: Path
         """
-        print(f'[dev.test.swap] Swap source/test for {path}')
+        print(f'[Dev.test.swap] Swap source/test for {path}')
 
-class validate(dev):
+class validate(Dev):
 
     def file(self, strict: bool = True):
         """
@@ -94,9 +99,9 @@ class validate(dev):
         :param strict: Fail on warnings.
         :type strict: bool
         """
-        print(f'[dev.validate.file] Validate file (strict={strict})')
+        print(f'[Dev.validate.file] Validate file (strict={strict})')
 
-class doc(dev):
+class doc(Dev):
 
     def build(self, open_browser: bool = False):
         """
@@ -105,9 +110,9 @@ class doc(dev):
         :param open_browser: Open result in browser.
         :type open_browser: bool
         """
-        print(f'[dev.doc.build] Build docs (open_browser={open_browser})')
+        print(f'[Dev.doc.build] Build docs (open_browser={open_browser})')
 
-class create(dev):
+class create(Dev):
 
     def testfile(self, module: Path, testfile: Path = Path(''), prompts=True, browser: str = ''):
         """
@@ -116,7 +121,7 @@ class create(dev):
         :param prompts: create prompts for ai gen.
         :type bool: bool
         """
-        print(f'[dev.doc.build] Build docs (open_browser={browser})')
+        print(f'[Dev.doc.build] Build docs (open_browser={browser})')
 
 class doccheck(EvnCLI):
     "Doccheck: audit project documentation and doctests."

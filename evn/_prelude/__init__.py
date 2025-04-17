@@ -1,4 +1,5 @@
 from evn._prelude.make_decorator import make_decorator as make_decorator
+from evn._prelude import run_info
 from evn._prelude import chrono as chrono
 from evn._prelude import import_util as import_util
 from evn._prelude import lazy_import as lazy_import

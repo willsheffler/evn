@@ -145,7 +145,7 @@ def dispatch(
         if testfile := testfile_of(projects, path, basename, **kw):
             if not os.path.exists(testfile) and fname.endswith('.py'):
                 print('autogen test file', testfile)
-                os.system(f'{sys.executable} -mevn create testfile {fname} {testfile}')
+                os.system(f'{sys.executable} -mevn dev create testfile {fname} {testfile}')
                 os.system(f'subl {testfile}')
                 sys.exit()
             fname = testfile

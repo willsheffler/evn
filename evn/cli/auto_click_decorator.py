@@ -147,7 +147,7 @@ def auto_click_decorate_command(fn, type_handlers: list[ClickTypeHandlers]):
         decorator = _generate_click_decorator(name,
                                               param,
                                               type_handlers,
-                                              help=arghelp.get(name))
+                                              help=arghelp.get(name,'no help in docstring'))
         decorators.append(decorator)
 
     # Apply the parameter decorators.

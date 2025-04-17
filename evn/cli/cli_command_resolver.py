@@ -28,7 +28,10 @@ from typing import Iterator
 from click import Command, Group
 from evn.cli.cli_registry import CliRegistry
 from evn.cli.cli_metaclass import CLI
+import evn
 
+def main():
+    evn.testing.quicktest(globals())
 
 def walk_commands(root: type[CLI],
                   seenit=None) -> Iterator[tuple[str, Command]]:
@@ -68,3 +71,6 @@ def get_all_cli_paths() -> list[str]:
     for cls in CliRegistry.all_cli_classes():
         paths.extend([p for p, _ in walk_commands(cls, seenit)])
     return paths
+
+if __name__ == '__main__':
+    main()

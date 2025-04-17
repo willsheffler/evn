@@ -98,6 +98,12 @@ def zipitems(*args, **kw):
     for k, v in zipped.items():
         yield k, *v
 
+def dictmap(func, dct, *a, **kw):
+    """Applies a function to each value in a dictionary, returning a new dictionary with the same keys."""
+    return {k: func(v, *a, **kw) for k, v in dct.items()}
+
+def listmap(*a, **kw):
+    return list(map(*a, **kw))
 
 @evn.dc.dataclass
 class ContiguousTokens:

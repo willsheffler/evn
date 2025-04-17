@@ -12,11 +12,9 @@ from evn._prelude.inspect import summary
 from evn import NA
 import evn
 
-__all__ = ('Bunch', 'bunchify', 'unbunchify', 'make_autosave_hierarchy',
-           'unmake_autosave_hierarchy')
+__all__ = ('Bunch', 'bunchify', 'unbunchify', 'make_autosave_hierarchy', 'unmake_autosave_hierarchy')
 
 T = TypeVar('T', bound=t.Any)
-
 
 def strmatch(a, b, fuzzy=0.2, partial='auto'):
     if not fuzzy:
@@ -26,14 +24,7 @@ def strmatch(a, b, fuzzy=0.2, partial='auto'):
         func = fuzz.partial_ratio
     return func(a, b) >= 1 - fuzzy
 
-
-def bunchfind(haystack,
-              needle,
-              fuzzy=0,
-              partial='auto',
-              path='',
-              seenit=None,
-              matcher=fuzz.partial_ratio):
+def bunchfind(haystack, needle, fuzzy=0, partial='auto', path='', seenit=None, matcher=fuzz.partial_ratio):
     seenit = seenit or set()
     found = {}
     if id(haystack) in seenit:
@@ -41,17 +32,12 @@ def bunchfind(haystack,
     seenit.add(id(haystack))
     items = enumerate(haystack)
     if isinstance(haystack, Mapping):
-        found |= {
-            f'{path}{k}': v
-            for k, v in haystack.items() if strmatch(needle, k, fuzzy, partial)
-        }
+        found |= {f'{path}{k}': v for k, v in haystack.items() if strmatch(needle, k, fuzzy, partial)}
         items = haystack.items()
     for k, v in items:
         if isinstance(v, (Mapping, Iterable)):
-            found |= bunchfind(v, needle, fuzzy, partial, f'{path}{k}.',
-                               seenit, matcher)
+            found |= bunchfind(v, needle, fuzzy, partial, f'{path}{k}.', seenit, matcher)
     return found
-
 
 @subscriptable_for_attributes
 @item_wise_operations
@@ -65,7 +51,7 @@ class Bunch(dict, Generic[T]):
     def __init__(
         self,
         __arg_or_ns=None,
-        _strict='__STRICT',
+        _strict: bool | str = '__STRICT',
         _default: t.Any = '__NODEFALT',
         _storedefault=True,
         _autosave=None,
@@ -99,8 +85,7 @@ class Bunch(dict, Generic[T]):
         if conf['autoreload']:
             Path(conf['autoreload']).touch()
             with open(conf['autoreload'], 'rb') as inp:
-                self._conf('autoreloadhash',
-                           hashlib.md5(inp.read()).hexdigest())
+                self._conf('autoreloadhash', hashlib.md5(inp.read()).hexdigest())
         conf['parent'] = _parent
         for k in list(self.keys()):
             if hasattr(super(), k):
@@ -140,11 +125,10 @@ class Bunch(dict, Generic[T]):
         special = self._conf
         super().clear()
         for k, v in new.items():
-            self[k] = make_autosave_hierarchy(
-                v,
-                _parent=(self, None),
-                _default=self._conf('default'),
-                _strict=self._conf('strict_lookup'))
+            self[k] = make_autosave_hierarchy(v,
+                                              _parent=(self, None),
+                                              _default=self._conf('default'),
+                                              _strict=self._conf('strict_lookup'))
         self._conf('autosave', orig)
         assert self._conf == special
 
@@ -167,18 +151,15 @@ class Bunch(dict, Generic[T]):
             os.makedirs(os.path.dirname(self._conf('autosave')), exist_ok=True)
             with open(self._conf('autosave') + '.tmp', 'w') as out:
                 yaml.dump(unmake_autosave_hierarchy(self), out)
-            shutil.move(
-                self._conf('autosave') + '.tmp', self._conf('autosave'))
+            shutil.move(self._conf('autosave') + '.tmp', self._conf('autosave'))
             with open(self._conf('autoreload'), 'rb') as inp:
-                self._conf('autoreloadhash',
-                           hashlib.md5(inp.read()).hexdigest())
+                self._conf('autoreloadhash', hashlib.md5(inp.read()).hexdigest())
                 # print('SAVE TO ', self._conf('autosave'))
 
     def _merge(self, other, layer: str = ''):
         for key in other:
             if key in self:
-                if isinstance(self[key], dict) and isinstance(
-                        other[key], dict):
+                if isinstance(self[key], dict) and isinstance(other[key], dict):
                     if not isinstance(self[key], Bunch):
                         self[key] = Bunch(self[key], _like=self)
                     self[key]._merge(other[key])
@@ -191,9 +172,7 @@ class Bunch(dict, Generic[T]):
     def default(self, key):
         default = self._conf('default')
         if default == 'bunchwithparent':
-            new = Bunch(_parent=(self, None),
-                        _default='bunchwithparent',
-                        _strict=self._conf('strict_lookup'))
+            new = Bunch(_parent=(self, None), _default='bunchwithparent', _strict=self._conf('strict_lookup'))
             special = new._config.copy()
             special['parent'] = id(special['parent'])
             # print('new child bunch:', key)  #, '_config:', special)
@@ -509,7 +488,6 @@ class Bunch(dict, Generic[T]):
     def from_dict(d, _like=None):
         return bunchify(d, _like=_like)
 
-
 class BunchChild:
 
     def __init__(self, *a, _parent, **kw):
@@ -523,7 +501,6 @@ class BunchChild:
     # def __repr__(self):
     #    return f'{self.__class__.__name__}<{super().__repr__()}>'
 
-
 class BunchChildList(BunchChild, list):
 
     def append(self, elmnt):
@@ -533,7 +510,6 @@ class BunchChildList(BunchChild, list):
     def __setitem__(self, index, elem):
         super().__setitem__(index, elem)
         self._parent[0]._notify_changed(f'{self._parent[1]}[{index}]', elem)
-
 
 class BunchChildSet(BunchChild, set):
 
@@ -545,42 +521,26 @@ class BunchChildSet(BunchChild, set):
         super().remove(elem)
         self._parent[0]._notify_changed(self._parent[1], elem)
 
-
 @t.overload
 def bunchify(data: dict[str, t.Any], _like: t.Optional[Bunch] = None) -> Bunch:
     ...
-
 
 @t.overload
 def bunchify(data: T, _like: t.Optional[Bunch]) -> T:
     ...
 
-
 def bunchify(data: t.Any, _like=None):
     if isinstance(data, dict):
-        return Bunch(_like=_like,
-                     **{
-                         k: bunchify(v, _like=_like)
-                         for k, v in data.items()
-                     })  # type: ignore
+        return Bunch(_like=_like, **{k: bunchify(v, _like=_like) for k, v in data.items()})  # type: ignore
     elif isinstance(data, (list, tuple)):
         return type(data)(bunchify(v, _like=_like) for v in data)
     else:
         return data
 
-
-def make_autosave_hierarchy(x,
-                            _parent=None,
-                            seenit=None,
-                            _strict=True,
-                            _autosave=None,
-                            _default=None):
+def make_autosave_hierarchy(x, _parent=None, seenit=None, _strict=True, _autosave=None, _default=None):
     seenit = seenit or set()
     assert id(x) not in seenit, 'x must be a Tree'
-    kw = dict(seenit=seenit,
-              _parent=_parent,
-              _default=_default,
-              _strict=_strict)
+    kw = dict(seenit=seenit, _parent=_parent, _default=_default, _strict=_strict)
     assert _parent is None or isinstance(_parent[0], Bunch)
     if isinstance(x, dict):
         x = Bunch(**x,
@@ -603,12 +563,7 @@ def make_autosave_hierarchy(x,
     seenit.add(id(x))
     return x
 
-
-def unmake_autosave_hierarchy(x,
-                              seenit=None,
-                              depth=0,
-                              verbose=False,
-                              _autosave=None):
+def unmake_autosave_hierarchy(x, seenit=None, depth=0, verbose=False, _autosave=None):
     seenit = seenit or set()
     assert id(x) not in seenit, 'x must be a Tree'
     kw = dict(seenit=seenit, depth=depth + 1, verbose=verbose)
@@ -624,7 +579,6 @@ def unmake_autosave_hierarchy(x,
         x = type(x)(unmake_autosave_hierarchy(v, **kw) for v in x)
     seenit.add(id(x))
     return x
-
 
 def unbunchify(x):
     if isinstance(x, dict):

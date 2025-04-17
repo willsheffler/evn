@@ -76,7 +76,7 @@ def _(array, maxnumel=24):
         return str(array)
     return f'{array.__class__.__name__}{list(array.shape)}'
 
-@summary.register('torch.Tensor')
+@summary.register('torch.Tensor', slow=True)
 def _(tensor, maxnumel=24):
     if tensor.numel <= maxnumel:
         return str(tensor)
@@ -92,9 +92,9 @@ def trace(func, showargs=True, showreturn=True, **kw):
             return func(*args, **kwargs)
         global _trace_indent
         indent = '    ' * _trace_indent
+        argstr = ''
         if showargs:
             sargs = args[1:] if is_member_function(func) else args
-            argstr = ''
             argstr = [summary(a) for a in sargs] + [f'{k}={summary(v)}' for k, v in kwargs.items()]
             argstr = f'({", ".join(argstr)})'
         print(f'{indent}call: {func.__name__}{argstr}')

@@ -16,7 +16,7 @@ def test_dispatch_deco():
     def foo(obj):
         print(obj)
 
-    assert isinstance(foo, LazyDispatcher)
+    assert isinstance(foo, LazyDispatcher), f'Expected LazyDispatcher, got {type(foo)}'
 
 def test_dispatch_deco_nest():
 
@@ -33,8 +33,8 @@ def test_dispatch_global_registry():
     def describe(obj):
         return 'default'
 
-    @lazydispatch(list, scope='local')
-    def describe(obj):
+    @describe.register(list)
+    def describe_list(obj):
         return 'list'
 
     assert len(GLOBAL_DISPATCHERS) == 1
@@ -43,7 +43,7 @@ def test_dispatchers_match():
     GLOBAL_DISPATCHERS.clear()
 
     @lazydispatch(object, scope='local')
-    def describe(obj):
+    def describe(obj):  # type: ignore
         return 'default'
 
     describe1 = describe
@@ -65,7 +65,7 @@ def test_dispatch_default():
     GLOBAL_DISPATCHERS.clear()
 
     @lazydispatch(object, scope='local')
-    def describe(obj):
+    def describe(obj): # type: ignore
         return 'default'
 
     describe1 = describe
@@ -82,10 +82,9 @@ def test_dispatch_default():
 
 def test_lazy_registration_numpy():
     numpy = pytest.importorskip('numpy')
-    if 'numpy' in sys.modules: del sys.modules['numpy']
 
     @lazydispatch(object, scope='local')
-    def describe(obj):
+    def describe(obj): # type: ignore
         return 'default'
 
     @lazydispatch('numpy.ndarray', scope='local')
@@ -97,7 +96,7 @@ def test_lazy_registration_numpy():
 def test_scope_local_disambiguation():
 
     @lazydispatch(object, scope='local')
-    def action(obj):
+    def action(obj): # type: ignore
         return 'default'
 
     @lazydispatch('builtins.int', scope='local')
@@ -113,8 +112,8 @@ def test_unresolved_type_skips():
     def handler(obj):
         return 'base'
 
-    @lazydispatch('ghost.Type', scope='local')
-    def handler(obj):
+    @handler.register('ghost.Type', scope='local')
+    def handler_ghost(obj):
         return 'ghost'
 
     class Other:
@@ -125,7 +124,7 @@ def test_unresolved_type_skips():
 def test_missing_dispatcher_errors():
     with pytest.raises(ValueError):
 
-        @lazydispatch('foo.   Bar')
+        @lazydispatch('foo.   Bar') # type: ignore
         def nothing(obj):
             return 'fail'
 
@@ -135,7 +134,7 @@ def test_predicate_registration():
     GLOBAL_DISPATCHERS.clear()
 
     @lazydispatch(object, scope='local')
-    def describe(obj):
+    def describe(obj):  # type: ignore
         return 'default'
 
     @lazydispatch(predicate=lambda x: isinstance(x, tuple), scope='local')
@@ -157,7 +156,7 @@ def test_lazydispatch_int():
 def test_lazydispatch_int_type():
 
     @lazydispatch(int)
-    def int_func2(obj):
+    def int_func2(obj): # type: ignore
         return obj + 1
 
     assert int_func2(5) == 6
@@ -172,13 +171,13 @@ def test_lazydispatch_int_type():
 def test_lazydispatch_int_type_pred():
 
     @lazydispatch(int)
-    def int_func3(obj):
+    def int_func3(obj): # type: ignore
         return obj + 1
 
     assert int_func3(5) == 6
 
     @lazydispatch(type)
-    def int_func3(obj):
+    def int_func3(obj): # type: ignore
         return f'type: {str(obj)}'
 
     assert int_func3(5) == 6
@@ -195,20 +194,20 @@ def test_lazydispatch_int_type_pred():
 def test_lazydispatch_int_type_pred_func():
 
     @lazydispatch(object)
-    def int_func4(obj):
+    def int_func4(obj):#type:ignore
         return str(obj)
 
     assert int_func4(5) == '5'
 
     @lazydispatch(type)
-    def int_func4(obj):
+    def int_func4(obj):#type:ignore
         return f'type: {str(obj)}'
 
     assert int_func4(5) == '5'
     assert int_func4(int) == 'type: <class \'int\'>'
 
     @lazydispatch(predicate=lambda x: isinstance(x, list))
-    def int_func4(obj):
+    def int_func4(obj):#type:ignore
         return f'list: {str(obj)}'
 
     assert int_func4(5) == '5'

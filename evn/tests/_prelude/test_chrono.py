@@ -3,7 +3,7 @@ import statistics
 import pytest
 import time
 import random
-from evn._prelude.chrono import Chrono, chrono, TimerScope
+from evn._prelude.chrono import Chrono, chrono, ChronoScope
 # from evn.dynamic_float_array import DynamicFloatArray
 
 import evn
@@ -20,6 +20,8 @@ config_test = evn.Bunch(
     ],
 )
 
+chronometer = Chrono('test_chrono')
+
 def main():
     evn.testing.quicktest(
         namespace=globals(),
@@ -29,48 +31,76 @@ def main():
         chrono=False,
     )
 
+def make_nested_calls(c):
+    with c.scope('foo'):
+        time.sleep(0.004)
+        with c.scope('bar'):
+            time.sleep(0.003)
+            with c.scope('baz'):
+                time.sleep(0.004)
+            time.sleep(0.003)
+        time.sleep(0.004)
+    return dict(foo=0.008, bar=0.006, baz=0.004)
+
 def test_chronometer():
     assert evn.chronometer
 
 class FuncNest:
 
     def __init__(self):
-        self.runtime = {'method1': [], 'method2': [], 'recursive': [], 'generator': []}
+        self.runtime = {'method1': [], 'method2': [], 'method3': [], 'recursive': [], 'generator': []}
+        self.tottime = {'method1': [], 'method2': [], 'method3': [], 'recursive': [], 'generator': []}
 
-    @chrono
+    @chrono(chrono=chronometer)
     def method1(self):
-        start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
-        # print(self)
+        start = start_tot = time.perf_counter()
+        time.sleep(0.0025)  # random.uniform(0.0025, 0.03))
         self.runtime['method1'].append(time.perf_counter() - start)
         self.method2()
         start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
+        time.sleep(0.0025)  # random.uniform(0.0025, 0.03))
         self.runtime['method1'].append(time.perf_counter() - start)
+        self.method3()
+        start = time.perf_counter()
+        time.sleep(0.0025)  # random.uniform(0.0025, 0.03))
+        self.runtime['method1'].append(time.perf_counter() - start)
+        self.method3()
+        start = time.perf_counter()
+        time.sleep(0.0025)  # random.uniform(0.0025, 0.03))
+        self.runtime['method1'].append(time.perf_counter() - start)
+        self.tottime['method1'].append(time.perf_counter() - start_tot)
 
-    @chrono
+    @chrono(chrono=chronometer)
     def method2(self):
-        start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
+        start = start_tot = time.perf_counter()
+        time.sleep(0.005)  # random.uniform(0.01, 0.03))
         self.runtime['method2'].append(time.perf_counter() - start)
-        self.recursive(random.randint(1, 3))
+        self.recursive(3, topcall=True)
         start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
+        time.sleep(0.005)  # random.uniform(0.01, 0.03))
         self.runtime['method2'].append(time.perf_counter() - start)
+        self.tottime['method2'].append(time.perf_counter() - start_tot)
 
-    @chrono
-    def recursive(self, depth):
-        if not depth:
-            return
-        start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
+    @chrono(chrono=chronometer)
+    def method3(self):
+        start = start_tot = time.perf_counter()
+        time.sleep(0.005)
+        self.runtime['method3'].append(time.perf_counter() - start)
+        self.tottime['method3'].append(time.perf_counter() - start_tot)
+
+    @chrono(chrono=chronometer)
+    def recursive(self, depth, topcall=False):
+        if not depth: return
+        start = start_tot = time.perf_counter()
+        time.sleep(0.005)  # random.uniform(0.005, 0.03))
         self.runtime['recursive'].append(time.perf_counter() - start)
         self.recursive(depth - 1)
         start = time.perf_counter()
-        time.sleep(0.01)  # random.uniform(0.01, 0.03))
+        time.sleep(0.005)  # random.uniform(0.005, 0.03))
         self.runtime['recursive'].append(time.perf_counter() - start)
+        if topcall: self.tottime['recursive'].append(time.perf_counter() - start_tot)
 
-    # @chrono
+    # @chrono(chrono=chronometer)
     # def generator(self):
     #     start = time.perf_counter()
     #     time.sleep(0.01)  # random.uniform(0.01, 0.03))
@@ -93,36 +123,48 @@ FuncNest.recursive.__module__ = 'test_chrono'
 
 # @pyt8est.mark.xfail
 def test_chrono_nesting():
+    chronometer.clear()
     instance = FuncNest()
     instance.method1()
     # assert list(instance.generator()) == [0, 1, 2, 3, 4]
-    report = evn.chronometer.report_dict()
-    pprint(report)
+    report = chronometer.report_dict()
+    # pprint(report)
     for method in 'method1 method2 recursive'.split():
         try:
-            recorded_time = sum(instance.runtime[method])
-            print(report.keys())
-            chrono_time = report[f'test_chrono.FuncNest.{method}']
-            err = f'Mismatch in {method}, internal: {recorded_time} vs chrono: {chrono_time}'
-            assert abs(recorded_time - chrono_time) < 0.005, err
+            recorded = sum(instance.runtime[method])
+            recorded_tot = sum(instance.tottime[method])
+            # print(report.keys())
+            chrono = report[f'test_chrono.FuncNest.{method}'].active
+            chrono_tot = report[f'test_chrono.FuncNest.{method}'].total
+            err = f'Mismatch in active {method}, internal: {recorded} vs chrono: {chrono}'
+            assert abs(recorded - chrono) < 0.001, err
+            err = f'Mismatch in total {method}, internal: {recorded_tot} vs chrono: {chrono_tot}'
+            assert abs(recorded_tot - chrono_tot) < 0.001, err
         except KeyError:
             assert 0, f'missing key {method}'
-
-    assert evn.chronometer.scopestack[-1].name == 'main'
+    ttot = evn.Bunch(chronometer.times_tot)
+    tot_meth2 = sum(ttot['test_chrono.FuncNest.method2'])
+    tot_meth1 = sum(ttot['test_chrono.FuncNest.method1'])
+    tot_rec = sum(ttot['test_chrono.FuncNest.recursive'])
+    assert tot_meth2 < tot_meth1, f'tot_meth2 {tot_meth2} >= tot_meth1 {tot_meth1}'
+    assert tot_rec < tot_meth2, f'tot_rec {tot_rec} >= tot_meth2 {tot_meth2}'
+    t_rec_active = sum(chronometer.times['test_chrono.FuncNest.recursive'])
+    assert abs(tot_rec - t_rec_active) < 0.001, f'tot_rec {tot_rec} != t_rec_active {t_rec_active}'
+    assert chronometer.scopestack[-1].name == chronometer.name
 
 def test_chrono_func():
-    timer = Chrono()
+    chronometer = Chrono()
 
-    @chrono(chrono=timer)
+    @chrono(chrono=chronometer)(chrono=chronometer)
     def foo():
         time.sleep(0.001)
 
     foo.__module__ = 'test_chrono'
     foo()
-    assert 'test_chrono.test_chrono_func.foo' in timer.times
-    assert len(timer.times['test_chrono.test_chrono_func.foo']) == 1
-    print(timer.times['test_chrono.test_chrono_func.foo'])
-    assert sum(timer.times['test_chrono.test_chrono_func.foo']) >= 0.001
+    assert 'test_chrono.test_chrono_func.foo' in chronometer.times
+    assert len(chronometer.times['test_chrono.test_chrono_func.foo']) == 1
+    print(chronometer.times['test_chrono.test_chrono_func.foo'])
+    assert sum(chronometer.times['test_chrono.test_chrono_func.foo']) >= 0.001
 
 def test_scope():
     with Chrono() as t:
@@ -142,24 +184,24 @@ def allclose(a, b, atol):
 
 def test_chrono_checkpoint():
     with Chrono() as chrono:
-        time.sleep(0.02)
+        time.sleep(0.002)
         chrono.checkpoint('foo')
-        time.sleep(0.06)
+        time.sleep(0.006)
         chrono.checkpoint('bar')
-        time.sleep(0.04)
+        time.sleep(0.004)
         chrono.checkpoint('baz')
 
     times = chrono.report_dict()
-    assert allclose(times['foo'], 0.02, atol=0.05)
-    assert allclose(times['bar'], 0.06, atol=0.05)
-    assert allclose(times['baz'], 0.04, atol=0.05)
+    assert allclose(times['foo'].active, 0.002, atol=0.005)
+    assert allclose(times['bar'].active, 0.006, atol=0.005)
+    assert allclose(times['baz'].active, 0.004, atol=0.005)
 
-    times = chrono.report_dict(order='longest')
-    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo', 'Chrono']
+    times = chrono.report_dict(order='active')
+    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo', 'Chrono'], f'Unexpected keys: {times.keys()}'
 
     times = chrono.report_dict(order='callorder')
     print(times.keys())
-    assert list(times.keys()) == ['foo', 'bar', 'baz', 'Chrono', 'total']
+    assert list(times.keys()) == ['foo', 'bar', 'baz', 'total', 'Chrono'], f'Unexpected keys: {times.keys()}'
 
     with pytest.raises(ValueError):
         chrono.report_dict(order='oarenstoiaen')
@@ -168,17 +210,17 @@ def chrono_deco_func():
     time.sleep(0.01)
 
 chrono_deco_func.__module__ = 'test_chrono'
-chrono_deco_func = chrono(chrono_deco_func)
+chrono_deco_func = chrono(chrono_deco_func, chrono=chronometer)
 
 def test_chrono_deco_func():
-    evn.chronometer.clear()
+    chronometer.clear()
     for _ in range(3):
         chrono_deco_func()
 
-    times = evn.chronometer.find_times('test_chrono.chrono_deco_func')
+    times = chronometer.find_times('test_chrono.chrono_deco_func')
     for t in times:
         assert 0.01 <= t < 0.012
-    assert 'test_chrono.chrono_deco_func' in evn.chronometer.times
+    assert 'test_chrono.chrono_deco_func' in chronometer.times
 
 def chrono_deco_func2():
     time.sleep(0.005)
@@ -186,7 +228,7 @@ def chrono_deco_func2():
     time.sleep(0.005)
 
 chrono_deco_func2.__module__ = 'test_chrono'
-chrono_deco_func2 = chrono(chrono_deco_func2)
+chrono_deco_func2 = chrono(chrono_deco_func2, chrono=chronometer)
 
 def chrono_deco_func3():
     time.sleep(0.005)
@@ -194,44 +236,44 @@ def chrono_deco_func3():
     time.sleep(0.005)
 
 chrono_deco_func3.__module__ = 'test_chrono'
-chrono_deco_func3 = chrono(chrono_deco_func3)
+chrono_deco_func3 = chrono(chrono_deco_func3, chrono=chronometer)
 
 def test_chrono_deco_func_nest():
-    evn.chronometer.clear()
+    chronometer.clear()
     N = 1
     for _ in range(N):
         chrono_deco_func3()
-    times = evn.chronometer.find_times('test_chrono.chrono_deco_func')
-    times2 = evn.chronometer.find_times('test_chrono.chrono_deco_func2')
-    times3 = evn.chronometer.find_times('test_chrono.chrono_deco_func3')
-    print(evn.chronometer.times.keys())
+    times = chronometer.find_times('test_chrono.chrono_deco_func')
+    times2 = chronometer.find_times('test_chrono.chrono_deco_func2')
+    times3 = chronometer.find_times('test_chrono.chrono_deco_func3')
+    print(chronometer.times.keys())
     assert N == len(times) == len(times2) == len(times3)
     for t, t2, t3 in zip(times, times2, times3):
         assert 0.01 <= t < 0.012
         assert 0.01 <= t2 < 0.012
         assert 0.01 <= t3 < 0.012
-    assert 'test_chrono.chrono_deco_func' in evn.chronometer.times
-    assert 'test_chrono.chrono_deco_func2' in evn.chronometer.times
+    assert 'test_chrono.chrono_deco_func' in chronometer.times
+    assert 'test_chrono.chrono_deco_func2' in chronometer.times
 
 def test_summary():
     with Chrono() as chrono:
         chrono.enter_scope('foo')
-        time.sleep(0.01)
+        time.sleep(0.001)
         chrono.exit_scope('foo')
         chrono.enter_scope('foo')
-        time.sleep(0.03)
+        time.sleep(0.003)
         chrono.exit_scope('foo')
         chrono.enter_scope('foo')
-        time.sleep(0.02)
+        time.sleep(0.002)
         chrono.exit_scope('foo')
     times = chrono.report_dict(summary=sum)
-    assert allclose(times['foo'], 0.06, atol=0.02)
+    assert allclose(times['foo'].active, 0.006, atol=0.002)
 
     times = chrono.report_dict(summary=statistics.mean)
-    assert allclose(times['foo'], 0.02, atol=0.01)
+    assert allclose(times['foo'].active, 0.002, atol=0.001)
 
     times = chrono.report_dict(summary=min)
-    assert allclose(times['foo'], 0.01, atol=0.01)
+    assert allclose(times['foo'].active, 0.001, atol=0.001)
 
     with pytest.raises(TypeError):
         chrono.report(summary='foo')
@@ -248,7 +290,7 @@ def test_chrono_stop_behavior():
     with pytest.raises(AssertionError):
         chrono.enter_scope('bar')
     with pytest.raises(AssertionError):
-        chrono.store_finished_scope(TimerScope('baz'))
+        chrono.end_scope(ChronoScope('baz', chrono))
 
 def test_scope_mismatch():
     chrono = Chrono()
@@ -266,20 +308,11 @@ def test_scope_name_from_object():
     assert isinstance(name, str)
     assert 'Dummy' in name
 
-def test_report_string_return():
-    with Chrono() as chrono:
-        chrono.enter_scope('foo')
-        time.sleep(0.01)
-        chrono.exit_scope('foo')
-    report = chrono.report(printme=False)
-    assert isinstance(report, str)
-    assert 'foo' in report
-
 @pytest.mark.skip
 def test_generator_deco():
     calls = []
 
-    @chrono
+    @chrono(chrono=chronometer)
     def gen():
         yield 1
         yield 2
@@ -287,15 +320,14 @@ def test_generator_deco():
     with pytest.raises(ValueError):
         for x in gen():
             calls.append(x)
-
     assert calls == [1, 2]
-    print(evn.chronometer.times)
+    print(chronometer.times)
 
 @pytest.mark.skip
 def test_generator_with_exception():
     calls = []
 
-    @chrono
+    @chrono(chrono=chronometer)
     def gen():
         yield 1
         yield 2
@@ -306,7 +338,7 @@ def test_generator_with_exception():
             calls.append(x)
 
     assert calls == [1, 2]
-    print(evn.chronometer.times)
+    print(chronometer.times)
 
 def test_nested_chrono_scopes():
     with Chrono() as outer:
@@ -340,17 +372,32 @@ def test_scope_context_manager():
 
 def test_nested_scope_context_manager():
     c = Chrono()
-    with c.scope('foo'):
-        time.sleep(0.005)
-        with c.scope('bar'):
-            time.sleep(0.005)
-            with c.scope('baz'):
-                time.sleep(0.01)
-            time.sleep(0.005)
-        time.sleep(0.005)
+    target = make_nested_calls(c)
     for n in 'foo bar baz'.split():
         assert n in c.times
-        assert 0.01 <= c.times[n][0] < 0.012
+        assert target[n] <= c.times[n][0] < target[n] + 0.002
+
+chrono_report_expected = """
+╭─ Profile of test_chrono (order=total, summary=sum) ─╮
+│  total │ active │ scope                             │
+│ ╶──────┼────────┼──────────────────────────────╴    │
+│    TTT │    AAA │ test_chrono.chrono_deco_func3     │
+│    TTT │    AAA │ test_chrono.chrono_deco_func2     │
+│    TTT │    AAA │ test_chrono.chrono_deco_func      │
+│    TTT │    AAA │ test_chrono                       │
+╰─────────────────────────────────────────────────────╯
+"""
+
+@pytest.mark.noci
+def test_chrono_report():
+    chrono = Chrono()
+    make_nested_calls(chrono)
+    report = chronometer.report(order='total', test=True, printme=False)
+    evn.diff(chrono_report_expected, report, strip=True)
+    if report.strip() != chrono_report_expected.strip():
+        chronometer.report(order='total', printme=True, mintime=0)
+        print(report)
+    assert report.strip() == chrono_report_expected.strip()
 
 if __name__ == '__main__':
     main()

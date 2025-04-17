@@ -1,4 +1,4 @@
-from evn import CLI
+from evn.cli import CLI
 from pathlib import Path
 
 # === Root CLI scaffold using inheritance-based hierarchy ===
@@ -134,7 +134,7 @@ class doccheck(TestApp):
     "Doccheck: audit project documentation and doctests."
 
     @classmethod
-    def _callback(cls, docsdir='docs'):
+    def _callback(cls, foo='baz', docsdir='docs'):
         return dict(help_option_names=['--dochelp'])
 
 

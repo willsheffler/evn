@@ -74,7 +74,6 @@ __the_real_stdout__ = sys.__stdout__
 __the_real_stderr__ = sys.__stderr__
 import evn
 
-
 def onexit(func, msg=None, **metakw):
 
     def wrapper(*args, **kw):
@@ -85,7 +84,6 @@ def onexit(func, msg=None, **metakw):
     atexit.register(wrapper)
     return wrapper
 
-
 @contextlib.contextmanager
 def set_class(cls, self):
     try:
@@ -93,7 +91,6 @@ def set_class(cls, self):
         yield self
     finally:
         self.__class__ = orig  # type: ignore
-
 
 @contextlib.contextmanager
 def force_stdio():
@@ -104,14 +101,12 @@ def force_stdio():
         finally:
             pass
 
-
 @contextlib.contextmanager
 def nocontext():
     try:
         yield None
     finally:
         pass
-
 
 class TraceWrites(object):
 
@@ -122,9 +117,7 @@ class TraceWrites(object):
 
     def write(self, s):
         stack = os.linesep.join(traceback.format_stack())
-        stack = evn.filter_python_output(stack,
-                                         preset=self.preset,
-                                         arrows=False)
+        stack = evn.filter_python_output(stack, preset=self.preset, arrows=False)
         self.log.append(f'\nA WRITE TO STDOUT!: "{s}"{os.linesep}')
         self.log.append(stack)
 
@@ -134,13 +127,11 @@ class TraceWrites(object):
     def printlog(self):
         self.stdout.write(os.linesep.join(self.log))
 
-
 @contextlib.contextmanager
 def trace_writes_to_stdout(preset='aggressive'):
     tp = TraceWrites(preset)
     with redirect(stdout=tp, after=lambda: tp.printlog()):
         yield tp
-
 
 @contextlib.contextmanager
 def catch_em_all():
@@ -151,7 +142,6 @@ def catch_em_all():
         errors.append(e)
     finally:
         pass
-
 
 @contextlib.contextmanager
 def redirect(
@@ -186,7 +176,6 @@ def redirect(
         if after:
             after()
 
-
 @contextlib.contextmanager
 def cd(path):
     """
@@ -205,14 +194,12 @@ def cd(path):
     finally:
         os.chdir(oldpath)
 
-
 @contextlib.contextmanager
 def just_stdout():
     try:
         yield sys.stdout
     finally:
         pass
-
 
 @contextlib.contextmanager
 def capture_stdio():
@@ -228,7 +215,6 @@ def capture_stdio():
         finally:
             out.seek(0)
             err.seek(0)
-
 
 @contextlib.contextmanager
 def capture_asserts():
@@ -246,7 +232,6 @@ def capture_asserts():
     finally:
         pass
 
-
 def optional_imports():
     """
     Suppress ImportError.
@@ -255,7 +240,6 @@ def optional_imports():
         contextlib.suppress(ImportError)
     """
     return contextlib.suppress(ImportError)
-
 
 @contextlib.contextmanager
 def modloaded(pkg):
@@ -266,7 +250,6 @@ def modloaded(pkg):
             yield None
     finally:
         pass
-
 
 @contextlib.contextmanager
 def cd_project_root():
@@ -282,7 +265,6 @@ def cd_project_root():
     else:
         yield False
 
-
 @contextlib.contextmanager
 def np_printopts(**kw):
     np = evn.maybeimport('numpy')
@@ -296,6 +278,47 @@ def np_printopts(**kw):
     finally:
         np.set_printoptions(**{k: npopt[k] for k in kw})
 
-
 def np_compact(precision=4, suppress=True, **kw):
     return np_printopts(precision=precision, suppress=suppress, **kw)
+
+@contextlib.contextmanager
+def temporary_random_seed(seed=0):
+    """
+    Temporarily set a numpy random seed.
+
+    Parameters:
+        seed (int): The seed to set. default 0
+
+    Yields:
+        None
+    """
+    import random
+    state = evn.Bunch()
+    state.python = random.getstate()
+    random.seed(seed)
+    if 'numpy' in sys.modules:
+        state.numpy = sys.modules['numpy'].random.get_state()
+        if seed is not None:
+            sys.modules['numpy'].random.seed(seed)
+    if 'torch' in sys.modules:
+        state.torch_cpu_rng = sys.modules['torch'].get_rng_state(),
+        sys.modules['torch'].manual_seed(seed)
+        if sys.modules['torch'].cuda.is_available():
+            state.torch_cuda_rng = sys.modules['torch'].cuda.get_rng_state_all(),  # list per device
+            sys.modules['torch'].cuda.manual_seed(seed)
+            state.cudnn_deterministic = sys.modules['torch'].backends.cudnn.deterministic
+            state.cudnn_benchmark = sys.modules['torch'].backends.cudnn.benchmark
+            sys.modules['torch'].backends.cudnn.deterministic = True
+            sys.modules['torch'].backends.cudnn.benchmark = False
+    try:
+        yield None
+    finally:
+        random.setstate(state.python)
+        if 'numpy' in sys.modules and seed is not None:
+            sys.modules['numpy'].random.set_state(state.numpy)
+        if 'torch' in sys.modules:
+            sys.modules['torch'].set_rng_state(state.torch_cpu_rng)
+            if sys.modules['torch'].cuda.is_available():
+                sys.modules['torch'].cuda.set_rng_state_all(state.torch_cuda_rng)
+                sys.modules['torch'].backends.cudnn.deterministic = state.cudnn_deterministic
+                sys.modules['torch'].backends.cudnn.benchmark = state.cudnn_benchmark

@@ -4,13 +4,11 @@ import inspect
 from typing import Optional
 import types
 
-
 def current_frame() -> types.FrameType:
     frame = inspect.currentframe()
     if frame is None:
         raise ValueError('frame is None')
     return frame
-
 
 def frame_parent(frame: Optional[types.FrameType]) -> types.FrameType:
     if frame is None:
@@ -20,9 +18,7 @@ def frame_parent(frame: Optional[types.FrameType]) -> types.FrameType:
         raise ValueError('frame is None')
     return frame
 
-
 CallerInfo = collections.namedtuple('CallerInfo', 'filename lineno code')
-
 
 def caller_info(excludefiles=None) -> CallerInfo:
     excludefiles = excludefiles or []
@@ -38,7 +34,6 @@ def caller_info(excludefiles=None) -> CallerInfo:
     if module is not None:
         code = lines[frame.f_lineno - no - 1].strip()
     return CallerInfo(frame.f_code.co_filename, frame.f_lineno, code)
-
 
 def find_close_argnames(word, string_list, n=3, cutoff=0.6):
     """Find close matches to a given word from a list of strings.
@@ -57,6 +52,5 @@ def find_close_argnames(word, string_list, n=3, cutoff=0.6):
         ['apple', 'apply']
     """
     candidates = get_close_matches(word, string_list, n=n, cutoff=cutoff)
-    candidates = filter(lambda s: abs(len(s) - len(word)) < len(word) // 5,
-                        candidates)
+    candidates = filter(lambda s: abs(len(s) - len(word)) < len(word) // 5, candidates)
     return list(candidates)

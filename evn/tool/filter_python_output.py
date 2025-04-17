@@ -110,8 +110,9 @@ def transform_fileref_to_python_format(line, match=None):
     '  File "/home/sheffler/evn/evn/tests/_prelude/test_chrono.py", line 96, ...'
     /home/sheffler/evn/evn/cli/__init__.py:32: DocTestFailure
     """
-    match = match or re_file_alt.match(line)
-    return f'  File "{match.group(1)}", line {match.group(2)}, ...'
+    if match := match or re_file_alt.match(line):
+        return f'  File "{match.group(1)}", line {match.group(2)}, ...'
+    return line
 
 def _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=False):
     if block:
@@ -214,7 +215,7 @@ def analyze_python_errors_log(text):
         errmatch = error_pattern.search(trace)
         assert filematch and errmatch, f'Error pattern not found in {trace}'
         location = ':'.join(filematch.groups())
-        error = errmatch.group(0).strip()
+        error = errmatch[0].strip()
         key = (location, error)
         if key not in trace_map:
             trace_map[key] = trace

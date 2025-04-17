@@ -1,9 +1,12 @@
 from collections.abc import Mapping, Iterable
 import difflib
 import re
+import os
 
 import rich
+from rich import box
 from rich.table import Table
+from rich.panel import Panel
 from rich.console import Console
 
 import evn
@@ -12,10 +15,8 @@ np = evn.lazyimport('numpy')
 
 console = Console()
 
-
 def print(*args, **kw):
     rich.print(*args, **kw)
-
 
 def make_table(thing, precision=3, expand=False, **kw):
     kw['precision'] = precision
@@ -32,13 +33,26 @@ def make_table(thing, precision=3, expand=False, **kw):
             return make_table_dataset(thing, **kw)
         raise TypeError(f'cant make table for {type(thing)}')
 
-
-def print_table(table, **kw):
+def print_table(table, printme=True, **kw):
     if not isinstance(table, Table):
         if table is None or not len(table):
             return '<empty table>'
         table = make_table(table, **kw)
-    console.print(table)
+    with evn.capture_stdio() as printed:
+        console.print(table)
+    text = printed.read()
+    text = postprocess_table(text, **kw)
+    if printme: print(text)
+    return text
+
+def postprocess_table(text, remove_blank_lines=True, **kw):
+    new = []
+    for line in text.splitlines():
+        # with evn.force_stdio():
+          # print(set(line))
+        if set(line) <= set(' ╵│╷'): continue
+        new.append(line)
+    return os.linesep.join(new)
 
 
 def make_table_list(lst, title=None, header=[], **kw):
@@ -50,10 +64,8 @@ def make_table_list(lst, title=None, header=[], **kw):
         t.add_row(*row)
     return t
 
-
 def make_table_bunch(bunch, **kw):
     return make_table_dict(bunch, **kw)
-
 
 def make_table_dict(mapping, **kw):
     assert isinstance(mapping, Mapping)
@@ -67,34 +79,31 @@ def make_table_dict(mapping, **kw):
     except AssertionError:
         return make_table_dict_of_any(mapping, **kw)
 
-
 def _keys(mapping, exclude=(), **kw):
-    return [
-        k for k in mapping if k[0] != '_' and k[-1] != '_' and k not in exclude
-    ]
-
+    return [k for k in mapping if k[0] != '_' and k[-1] != '_' and k not in exclude]
 
 def _items(mapping, exclude=(), **kw):
-    return [(k, v) for k, v in mapping.items()
-            if k[0] != '_' and k[-1] != '_' and k not in exclude]
+    return [(k, v) for k, v in mapping.items() if k[0] != '_' and k[-1] != '_' and k not in exclude]
 
-
-def make_table_dict_of_dict(mapping, title=None, key='key', **kw):
+def make_table_dict_of_dict(mapping, title=None, key='key', keylast=False, border=False, **kw):
     assert all(isinstance(m, Mapping) for m in mapping.values())
     vals = list(mapping.values())
     assert all(_keys(v, **kw) == _keys(vals[0], **kw) for v in vals)
-    t = evn.kwcall(kw, Table, title=title)
-    if key:
-        evn.kwcall(kw, t.add_column, to_renderable(key, **kw))
+    tablekw = dict(title=title, box=box.ROUNDED)
+    if border: tablekw = dict(title=None, box=box.MINIMAL, pad_edge=False)
+    t = evn.kwcall(kw, Table, **tablekw)
+    if key and not keylast: evn.kwcall(kw, t.add_column, to_renderable(key, **kw), justify='right')
     for k in _keys(vals[0], **kw):
-        evn.kwcall(kw, t.add_column, to_renderable(k, **kw))
+        evn.kwcall(kw, t.add_column, to_renderable(k, **kw), justify='right')
+    if key and keylast: evn.kwcall(kw, t.add_column, to_renderable(key, **kw))
     for k, submap in _items(mapping):
-        row = [k] * bool(key) + [
-            to_renderable(f, **kw) for f in submap.values()
-        ]
+        row = [to_renderable(f, **kw) for f in submap.values()]
+        if key and not keylast: row = [k] + row
+        if key and keylast: row += [k]
         t.add_row(*row)
+    if border:
+        t = Panel.fit(t, title=title, border_style='bold cyan')
     return t
-
 
 def make_table_dict_of_iter(mapping, title=None, **kw):
     vals = list(mapping.values())
@@ -107,7 +116,6 @@ def make_table_dict_of_iter(mapping, title=None, **kw):
         t.add_row(*row)
     return t
 
-
 def make_table_dict_of_any(mapping, title=None, **kw):
     # vals = list(mapping.values())
     table = evn.kwcall(kw, Table, title=title)
@@ -116,7 +124,6 @@ def make_table_dict_of_any(mapping, title=None, **kw):
     row = [to_renderable(v, **kw) for k, v in _items(mapping)]
     table.add_row(*row)
     return table
-
 
 def make_table_dataset(dataset, title=None, **kw):
     table = evn.kwcall(kw, Table, title=title)
@@ -135,13 +142,7 @@ def make_table_dataset(dataset, title=None, **kw):
             table.add_row(*row)
     return table
 
-
-def to_renderable(obj,
-                  textmap=None,
-                  strip=True,
-                  nohomog=False,
-                  precision=3,
-                  **kw):
+def to_renderable(obj, textmap=None, strip=True, nohomog=False, precision=3, **kw):
     textmap = textmap or {}
     if isinstance(obj, float):
         return f'{obj:7.{precision}f}'
@@ -163,8 +164,7 @@ def to_renderable(obj,
         s = s.strip()
     return s
 
-
-def diff(ref: str, new: str) -> None:
+def diff(ref: str, new: str) -> str:
     # Use difflib to create a unified diff
     diff = difflib.unified_diff(ref.splitlines(),
                                 new.splitlines(),
@@ -172,7 +172,6 @@ def diff(ref: str, new: str) -> None:
                                 tofile='Got',
                                 lineterm='')
     return '\n'.join(diff)
-
 
 def compare_multiline_strings(ref, got):
     """

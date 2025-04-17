@@ -15,12 +15,12 @@ def generate_tests(
     **kw,
 ):
     if not namespace:
-        namespace = inspect.currentframe().f_back.f_globals
+        namespace = inspect.currentframe().f_back.f_globals  #type:ignore
 
     for arg in args:
         testname = arg
         if not isinstance(testname, str):
-            testname = arg[0].replace(' ', '_')
+            testname = arg[0].replace(' ', '_') #type:ignore
         assert isinstance(testname, str)
 
         @evn.chrono
@@ -35,7 +35,7 @@ def generate_tests(
                 func = t.cast(t.Callable[[R], None], func)
 
                 def testfunc(func=func, processed: R = processed, kw=kw):
-                    return evn.kwcall(kw, func, *copy.copy(processed))
+                    return evn.kwcall(kw, func, *copy.copy(processed)) # type:ignore
 
                 testfunc.__name__ = testfunc.__qualname__ = f'{name}_{testname}'
                 namespace[f'{name}_{testname.upper()}'] = testfunc

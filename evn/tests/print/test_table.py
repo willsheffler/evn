@@ -1,10 +1,8 @@
 import pytest
 import evn
 
-
 def main():
     evn.testing.quicktest(namespace=globals())
-
 
 bunch = evn.Bunch(
     dot_norm=evn.Bunch(frac=0.174, tol=0.04, total=282, passes=49),
@@ -19,20 +17,39 @@ bunch = evn.Bunch(
 
 def test_make_table_dict_of_dict():
     with evn.capture_stdio() as out:
-        evn.print.print_table(bunch)
+        evn.console.print_table(bunch)
+    printed = out.read()
+    # print(printed)
+    assert (printed.strip() == """
+╭───────────────┬─────────┬─────────┬───────┬────────╮
+│           key │    frac │     tol │ total │ passes │
+├───────────────┼─────────┼─────────┼───────┼────────┤
+│      dot_norm │   0.174 │   0.040 │   282 │     49 │
+│         isect │   0.149 │   1.000 │   302 │     45 │
+│         angle │   0.571 │   0.090 │    42 │     24 │
+│ helical_shift │   1.000 │   1.000 │    47 │     47 │
+│       axistol │   0.412 │   0.100 │    17 │      7 │
+│         nfold │   1.000 │   0.200 │     5 │      5 │
+│       cageang │   0.500 │   0.100 │     2 │      1 │
+╰───────────────┴─────────┴─────────┴───────┴────────╯
+""".strip())
+
+def test_make_table_border():
+    with evn.capture_stdio() as out:
+        evn.console.print_table(bunch, border=True, title='Foo Bar Baz')
     printed = out.read()
     assert (printed.strip() == """
-┏━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
-┃ key           ┃ frac    ┃ tol     ┃ total ┃ passes ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
-│ dot_norm      │   0.174 │   0.040 │  282  │   49   │
-│ isect         │   0.149 │   1.000 │  302  │   45   │
-│ angle         │   0.571 │   0.090 │   42  │   24   │
-│ helical_shift │   1.000 │   1.000 │   47  │   47   │
-│ axistol       │   0.412 │   0.100 │   17  │    7   │
-│ nfold         │   1.000 │   0.200 │    5  │    5   │
-│ cageang       │   0.500 │   0.100 │    2  │    1   │
-└───────────────┴─────────┴─────────┴───────┴────────┘
+╭──────────────────── Foo Bar Baz ─────────────────────╮
+│            key │    frac │     tol │ total │ passes  │
+│ ╶──────────────┼─────────┼─────────┼───────┼───────╴ │
+│       dot_norm │   0.174 │   0.040 │   282 │     49  │
+│          isect │   0.149 │   1.000 │   302 │     45  │
+│          angle │   0.571 │   0.090 │    42 │     24  │
+│  helical_shift │   1.000 │   1.000 │    47 │     47  │
+│        axistol │   0.412 │   0.100 │    17 │      7  │
+│          nfold │   1.000 │   0.200 │     5 │      5  │
+│        cageang │   0.500 │   0.100 │     2 │      1  │
+╰──────────────────────────────────────────────────────╯
 """.strip())
 
 

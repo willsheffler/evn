@@ -36,3 +36,5 @@ def basic_typevars(which) -> list[t.Union[t.TypeVar, t.ParamSpec]]:
 
 def annotype(typ:type, info) -> t.Annotated:
     return t.Annotated[typ, info]
+
+Basic = t.Union[int, float, str, bool]

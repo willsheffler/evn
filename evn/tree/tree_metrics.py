@@ -2,10 +2,8 @@ import evn
 
 evn.dispatch(dict)
 
-
 def inspect(dct):
     return tree_metrics(dct)
-
 
 def tree_metrics(tree, subtree_pattern_threshold=2.0):
     """
@@ -106,18 +104,16 @@ def tree_metrics(tree, subtree_pattern_threshold=2.0):
                 all_keys.update(keys)
                 branch_counts.append(len(children))
 
-                subtree_repr = tuple(
-                    sorted((k, id(v)) for k, v in node.items()))
+                subtree_repr = tuple(sorted((k, id(v)) for k, v in node.items()))
                 subtree_counter[subtree_repr] += 1
 
                 for k, v in node.items():
-                    queue.append((v, depth + 1, k, id(v), current_path))
+                    queue.append((v, depth + 1, k, id(v), current_path))  # type:ignore
             else:
                 num_leaves += 1
                 total_nodes += 1
                 depth_list.append(depth)
-                total_leaf_size += len(node) if hasattr(
-                    node, '__len__') and not isinstance(node, str) else 1
+                total_leaf_size += len(node) if hasattr(node, '__len__') and not isinstance(node, str) else 1
 
             max_depth = max(max_depth, depth)
 
@@ -126,19 +122,15 @@ def tree_metrics(tree, subtree_pattern_threshold=2.0):
     total_elements = total_nodes + num_internal_nodes
     avg_leaf_depth = sum(depth_list) / len(depth_list) if depth_list else 0
     min_leaf_depth = min(depth_list) if depth_list else 0
-    leaf_depth_stddev = (sqrt(
-        sum((d - avg_leaf_depth)**2
-            for d in depth_list) / len(depth_list)) if depth_list else 0)
-    avg_branching = sum(branch_counts) / len(
-        branch_counts) if branch_counts else 0
-    key_reuse_ratio = sum(
-        key_counter.values()) / len(key_counter) if key_counter else 0
+    leaf_depth_stddev = (sqrt(sum(
+        (d - avg_leaf_depth)**2 for d in depth_list) / len(depth_list)) if depth_list else 0)
+    avg_branching = sum(branch_counts) / len(branch_counts) if branch_counts else 0
+    key_reuse_ratio = sum(key_counter.values()) / len(key_counter) if key_counter else 0
 
     repeated_subtrees = ({
         k: v
         for k, v in subtree_counter.items() if v > 1
-    } if elapsed < subtree_pattern_threshold else
-                         'Not computed (runtime threshold exceeded)')
+    } if elapsed < subtree_pattern_threshold else 'Not computed (runtime threshold exceeded)')
 
     return {
         'max_depth': max_depth,

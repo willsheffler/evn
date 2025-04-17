@@ -89,7 +89,7 @@ class CliMeta(type):
     # there are NOT ACTUALLY USED just to make the type checker happy
     __group__: click.Group
     __parent__: 'CLI | None'
-    __type_handlers__: 'ClickTypeHandlers | list[ClickTypeHandler]'
+    __type_handlers__: 'ClickTypeHandlers | list[type[ClickTypeHandler]]'
     __all_type_handlers__: list[ClickTypeHandlers]
     _config: classmethod
     _log: typing.Callable[['dict|str'], None]

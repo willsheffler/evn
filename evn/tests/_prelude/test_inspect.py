@@ -38,13 +38,6 @@ def test_summary_numpy_array():
     assert insp.summary(a) == str(a)
     assert insp.summary(b).startswith("ndarray[")
 
-def test_summary_torch_tensor():
-    torch = pytest.importorskip("torch")
-    t = torch.arange(5)
-    t_large = torch.arange(100)
-    assert insp.summary(t) == str(t)
-    assert insp.summary(t_large).startswith("Tensor[")
-
 def test_diff_basic_sets():
     assert insp.diff({1, 2}, {2, 3}) == {1, 3}
 

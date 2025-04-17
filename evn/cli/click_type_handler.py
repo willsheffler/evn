@@ -86,7 +86,7 @@ class ClickTypeHandlers(set):
         [h for h in self if h.metadata_policy(basetype)]
         return list(sorted(self, key=lambda x: x.priority(), reverse=True))
 
-    def typehint_to_click_paramtype(self, basetype, metadata) -> click.ParamType:
+    def typehint_to_click_paramtype(self, basetype, metadata) -> type | click.ParamType:
         """Given a basetype and optional metadata, return the Click ParamType to use."""
         handlers = self.ordered_handlers(basetype, metadata)
         if metadata:
@@ -145,7 +145,7 @@ class ClickTypeHandler(click.ParamType):
         return cls.__supported_types__.get(basetype)
 
     @classmethod
-    def typehint_to_click_paramtype(cls, basetype, metadata):
+    def typehint_to_click_paramtype(cls, basetype, metadata) -> click.ParamType:
         """
         Given a type hint (basetype) and optional metadata, return the Click ParamType to use.
         Default behavior is to return cls if this handler handles the type; otherwise, raises HandlerNotFoundError.

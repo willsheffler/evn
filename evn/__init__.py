@@ -1,9 +1,7 @@
-# __version__ = '0.7.1'
-
 from time import perf_counter
-from pathlib import Path as Path
 
-_start, _timings = perf_counter(), {}
+init_start = perf_counter()
+from pathlib import Path as Path
 
 pkgroot = Path(__file__).parent.absolute()
 projroot = pkgroot.parent
@@ -15,12 +13,6 @@ if not (projroot / 'pyproject.toml').exists:
 show_trace = False
 chronometer: 'evn._prelude.chrono.Chrono' = None  #type:ignore #noqa
 
-def evn_init_checkpoint(name):
-    global _start, _timings
-    _timings[name] = [perf_counter() - _start]
-    _start = perf_counter()
-
-# import os
 import typing as t  # noqa
 import dataclasses as dc  # noqa
 import functools as ft  # noqa
@@ -45,6 +37,7 @@ from typing import (
     Sequence as Sequence,
     MutableSequence as MutableSequence,
     Optional as Optional,
+    overload as overload,
 )
 from ninja_import import ninja_import as ninja_import
 from icecream import ic as ic
@@ -52,9 +45,11 @@ from icecream import ic as ic
 ic.configureOutput(includeContext=True)
 import builtins
 
-builtins.ic = ic  # make ic available globally
+builtins.ic = ic  # make ic available globally # type:ignore
 
-evn_init_checkpoint('INIT evn basic imports')
+from evn._prelude.chrono import (Chrono as Chrono, chrono as chrono, chrono_enter_scope as chrono_enter_scope,
+                                 chrono_exit_scope as chrono_exit_scope, chrono_checkpoint as
+                                 chrono_checkpoint)
 from evn._prelude.basic_types import (
     NA as NA,
     NoOp as NoOp,
@@ -106,15 +101,11 @@ from evn._prelude.typehints import (
     EnumerListIter as EnumerListIter,
     basic_typevars as basic_typevars,
     annotype as annotype,
+    Basic as Basic,
 )
 
-from evn._prelude.chrono import (
-    Chrono as Chrono,
-    chrono as chrono,
-    chrono_enter_scope as chrono_enter_scope,
-    chrono_exit_scope as chrono_exit_scope,
-    chrono_checkpoint as chrono_checkpoint
-)
+
+chrono_enter_scope('EVN INIT')
 from evn.decofunc import (
     iterize_on_first_param as iterize_on_first_param,
     iterize_on_first_param_path as iterize_on_first_param_path,
@@ -136,6 +127,7 @@ from evn.decon.iterables import (
     subsetenum as subsetenum,
     zipmaps as zipmaps,
     zipitems as zipitems,
+    dictmap as dictmap,
     addreduce as addreduce,  # type: ignore
     orreduce as orreduce,  # type: ignore
     andreduce as andreduce,  # type: ignore
@@ -154,8 +146,9 @@ from evn.decon.bunch import Bunch as Bunch, bunchify as bunchify, unbunchify as 
 # from evn.iterables import first as first
 # from evn.contexts import force_stdio as force_stdio
 from evn.meta import kwcall as kwcall, kwcheck as kwcheck
-from evn.print import make_table as make_table
-from evn.cli import CLI as CLI
+from evn.console import make_table as make_table
+
+# from evn.cli import CLI as CLI
 
 installed = Bunch(_default=is_installed, _frozen=True)
 
@@ -188,6 +181,8 @@ if TYPE_CHECKING:
     from evn import (
         config as config,
         cli as cli,
+        code as code,
+        console as console,
         dev as dev,
         decofunc as decofunc,
         decon as decon,
@@ -201,6 +196,8 @@ if TYPE_CHECKING:
 else:
     config = lazyimport('evn.config')
     cli = lazyimport('evn.cli')
+    code = lazyimport('evn.code')
+    console = lazyimport('evn.console')
     dev = lazyimport('evn.dev')
     decofunc = lazyimport('evn.decofunc')
     decon = lazyimport('evn.decon')
@@ -286,3 +283,7 @@ else:
 # dev.global_chrono.checkpoints.update(_timings)
 
 # caching_enabled = True
+
+# import atexit
+# atexit.register(lambda: chronometer.report(order='active', mintime=0.04, header=' '))
+chrono_exit_scope('EVN INIT')
