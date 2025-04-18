@@ -31,7 +31,7 @@ def main():
             with open(input_file, 'r') as inp:
                 text = inp.read()
         if args.filter:
-            output = evn.filter_python_output(text, preset=args.filter)
+            output = evn.process_python_output(text, preset=args.filter)
         else:
             output = evn.format_buffer(text)
         ctx = open(input_file, 'w') if args.inplace else evn.just_stdout()

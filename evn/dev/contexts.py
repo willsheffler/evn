@@ -95,9 +95,10 @@ def set_class(cls, self):
 @contextlib.contextmanager
 def force_stdio():
     """useful as temporary escape hatch with io capuring contexts"""
-    with redirect(__the_real_stdout__, __the_real_stderr__) as (out, err):
+    redir = redirect(__the_real_stdout__, __the_real_stderr__)
+    with redir as (out, err):
         try:
-            yield out, err
+            yield redir
         finally:
             pass
 
@@ -108,30 +109,34 @@ def nocontext():
     finally:
         pass
 
-class TraceWrites(object):
+class TraceWrites(evn.IO):
 
     def __init__(self, preset):
         self.stdout = sys.stdout
         self.preset = preset
         self.log = []
 
-    def write(self, s):
+    def write(self, s) -> int:
         stack = os.linesep.join(traceback.format_stack())
-        stack = evn.filter_python_output(stack, preset=self.preset, arrows=False)
-        self.log.append(f'\nA WRITE TO STDOUT!: "{s}"{os.linesep}')
-        self.log.append(stack)
+        stack = evn.code.process_python_output(stack, preset=self.preset, arrows=False)
+        self.log.append(f'\nA WRITE TO STDOUT!: "{s}"{os.linesep}{stack}')
+        return len(s)
 
     def flush(self):
         self.stdout.flush()
 
     def printlog(self):
+        out = sys.stdout
+        with evn.force_stdio():
+            print('printlog', out)
         self.stdout.write(os.linesep.join(self.log))
 
 @contextlib.contextmanager
 def trace_writes_to_stdout(preset='aggressive'):
     tp = TraceWrites(preset)
-    with redirect(stdout=tp, after=lambda: tp.printlog()):
+    with redirect(stdout=tp, stderr=tp):
         yield tp
+    tp.printlog()
 
 @contextlib.contextmanager
 def catch_em_all():
@@ -145,8 +150,8 @@ def catch_em_all():
 
 @contextlib.contextmanager
 def redirect(
-    stdout: evn.IO = sys.stdout,
-    stderr: evn.IO = sys.stderr,
+    stdout: evn.IO | str | None = sys.stdout,
+    stderr: evn.IO | str | None = sys.stderr,
     after: evn.Callable = evn.NoOp,
 ):
     """
@@ -162,12 +167,10 @@ def redirect(
     _out, _err = sys.stdout, sys.stderr
     try:
         sys.stdout.flush(), sys.stderr.flush()
-        if stdout is None:
-            stdout = io.StringIO()
-        if stderr == 'stdout':
-            stderr = stdout
-        elif stderr is None:
-            stderr = io.StringIO()
+        if stdout is None: stdout = io.StringIO()
+        if stderr == 'stdout': stderr = stdout
+        elif stderr is None: stderr = io.StringIO()
+        stdout, stderr = evn.cast(evn.IO, stdout), evn.cast(evn.IO, stderr)
         sys.stdout, sys.stderr = stdout, stderr
         yield stdout, stderr
     finally:
@@ -201,6 +204,25 @@ def just_stdout():
     finally:
         pass
 
+class CheckRead(evn.IO):
+
+    def __init__(self, file):
+        self.file = file
+        self.done = False
+
+    def read(self, value=None) -> str:
+        if not self.done: raise RuntimeError('Cannot read while capture is active')
+        self.file.seek(0)
+        return self.file.read()
+
+    def readlines(self, hint:int = -1) -> list[str]:
+        if not self.done: raise RuntimeError('Cannot readlines while capture is active')
+        self.file.seek(0)
+        return self.file.readlines(hint)
+
+    def __str__(self):
+        return self.read()
+
 @contextlib.contextmanager
 def capture_stdio():
     """
@@ -210,11 +232,12 @@ def capture_stdio():
         io.StringIO: The captured stdout buffer.
     """
     with redirect(None, 'stdout') as (out, err):
+        assert err is out
+        out = CheckRead(out)
         try:
             yield out
         finally:
-            out.seek(0)
-            err.seek(0)
+            out.done = True
 
 @contextlib.contextmanager
 def capture_asserts():

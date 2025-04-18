@@ -8,7 +8,7 @@ else:
     import typing_extensions as t
     # from typing_extensions import t.ParamSpec
 
-KW = dict[str, t.Any]
+KW = dict[str, t.Any|None]
 IOBytes = t.IO[bytes]
 IO = t.IO[str]
 """Type alias for keyword arguments represented as a dictionary with string keys and any type of value."""

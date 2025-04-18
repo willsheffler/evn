@@ -23,7 +23,7 @@ from collections import defaultdict
 from assertpy import assert_that
 from io import StringIO
 
-spo = ninja_import('evn.tool.filter_python_output')
+spo = ninja_import('evn.code.python_output')
 # set to manually specipy a command for a file
 _overrides = {
     'noxfile.py': 'nox -- 3.13 all',

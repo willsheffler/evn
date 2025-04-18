@@ -2,7 +2,7 @@ import os
 import re
 
 def main():
-    print('filter_python_output main')
+    print('process_python_output main')
     import sys
     import argparse
     parser = argparse.ArgumentParser()
@@ -16,7 +16,7 @@ def main():
         os.rename(fname, f'{fname}.orig')
         with open(f'{fname}.orig', 'r') as inp:
             text = inp.read()
-        newtext = filter_python_output(text, **args)
+        newtext = process_python_output(text, **args)
         with open(fname, 'w') as out:
             out.write(newtext)
         print(f'file: {fname}, lines {len(text.splitlines())} -> {len(newtext.splitlines())}')
@@ -29,23 +29,23 @@ presets = dict(
         refunc=
         (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
          ),
-        minlines=30,
+        minlines=1,
     ),
     boilerplate=dict(
         refile=
         (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|evn/dev/inspect.py'
          ),
         refunc=
-        (r'|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
+        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall'
          ),
-        minlines=30,
+        minlines=1,
     ),
     aggressive=dict(
         refile=
         (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py|/_[A-Za-z0-9i]*.py|site-packages/_pytest/.*py|<module>|evn/contexts.py|multipledispatch/dispatcher.py|evn/dev/inspect.py|meta/kwcall.py'
          ),
         refunc=
-        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall|main|kwcall'
+        (r'<module>|main|call_with_args_from|wrapper|print_table|make_table|import_module|import_optional_dependency|kwcall|main|kwcall|__.*?__'
          ),
         minlines=1,
     ),
@@ -56,26 +56,27 @@ re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
 re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
 re_null = r'a^'  # never matches
 
-def filter_python_output(
+def process_python_output(
     text,
     entrypoint=None,
     re_file=re_null,
     re_func=re_null,
-    preset='boilerplate',
+    preset: str | None = 'boilerplate',
     minlines=-1,
     filter_numpy_version_nonsense=True,
     keep_blank_lines=False,
     arrows=True,
     **kw,
 ):
-    preset = presets[preset]
+    config = presets[preset] if preset else None
     # if entrypoint == 'codetool': return text
-    if minlines < 0: minlines = preset['minlines']
-    if preset and re_file == re_null: re_file = preset['refile']
-    if preset and re_func == re_null: re_func = preset['refunc']
+    if minlines < 0: minlines = config['minlines'] if preset else 1  #type:ignore
+    if config and re_file == re_null: re_file = config['refile']
+    if config and re_func == re_null: re_func = config['refunc']
     if isinstance(re_file, str): re_file = re.compile(re_file)
     if isinstance(re_func, str): re_func = re.compile(re_func)
     if text.count(os.linesep) < minlines: return text
+
     if filter_numpy_version_nonsense:
         text = _filter_numpy_version_nonsense(text)
     if not keep_blank_lines:
@@ -87,10 +88,10 @@ def filter_python_output(
     for line in text.splitlines():
         line = strip_line_extra_whitespace(line)
         if m := re_block.match(line):
-            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped)
+            _finish_block(config, arrows, block, file, func, re_file, re_func, result, skipped)
             file, _linene, func, block = *m.groups(), [line]
         elif m := re_end.match(line):
-            _finish_block(preset, arrows, block, file, func, re_file, re_func, result, skipped, keep=True)
+            _finish_block(config, arrows, block, file, func, re_file, re_func, result, skipped, keep=True)
             file, _lineno, func, block = None, None, None, None
             result.append(line)
         elif block:
@@ -99,11 +100,13 @@ def filter_python_output(
             if m := re_file_alt.match(line):
                 line = transform_fileref_to_python_format(line, m)
             result.append(line)
-    if result[-1]: result.append('')
+    result.append(f'^^^^^^^^^^^^^^^^^^^^^ evn.tool.process_python_output {preset} ^^^^^^^^^^^^^^^^^^^^^\n')
+    # if result[-1]: result.append('')
     new = os.linesep.join(result)
     return new
 
 re_file_alt = re.compile(r'^E?\s*(.+?\.py):([0-9]+): .*')
+
 def transform_fileref_to_python_format(line, match=None):
     """
     examples

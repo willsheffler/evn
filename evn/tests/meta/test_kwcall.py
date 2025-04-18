@@ -212,7 +212,7 @@ def test_kwcheck_with_kwargs_func():
 class TestFilterMapping(unittest.TestCase):
 
     def setUp(self):
-        self.map = {
+        self.ns = {
             'test_func1': lambda: 'func1',
             'test_func2': lambda: 'func2',
             'test_funcA': lambda: 'funcA',
@@ -222,76 +222,76 @@ class TestFilterMapping(unittest.TestCase):
         }
 
     def test_default_behavior(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map)
-        assert 'test_func1' in map
-        assert 'test_func2' in map
-        assert 'test_funcA' in map
-        assert 'test_funcB' in map
-        assert 'test_other' in map
-        assert 'normal_func' in map
+        ns = self.ns.copy()
+        evn.meta.filter_namespace_funcs(ns)
+        assert 'test_func1' in ns
+        assert 'test_func2' in ns
+        assert 'test_funcA' in ns
+        assert 'test_funcB' in ns
+        assert 'test_other' in ns
+        assert 'normal_func' in ns
 
     def test_only(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, only=('test_func1', ))
-        assert 'test_func1' in map
-        assert 'test_func2' not in map
-        assert 'test_funcA' not in map
-        assert 'test_funcB' not in map
-        assert 'test_other' not in map
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns, only=('test_func1', ))
+        assert 'test_func1' in ns
+        assert 'test_func2' not in ns
+        assert 'test_funcA' not in ns
+        assert 'test_funcB' not in ns
+        assert 'test_other' not in ns
 
     def test_exclude(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, exclude=('test_func1', ))
-        assert 'test_func1' not in map
-        assert 'test_func2' in map
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns, exclude=('test_func1', ))
+        assert 'test_func1' not in ns
+        assert 'test_func2' in ns
 
     def test_re_only(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, re_only=('test_func[0-9]', ))
-        assert 'test_func1' in map
-        assert 'test_func2' in map
-        assert 'test_funcA' not in map
-        assert 'test_funcB' not in map
-        assert 'test_other' not in map
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns, re_only=('test_func[0-9]', ))
+        assert 'test_func1' in ns
+        assert 'test_func2' in ns
+        assert 'test_funcA' not in ns
+        assert 'test_funcB' not in ns
+        assert 'test_other' not in ns
 
     def test_re_exclude(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, re_exclude=('test_func[0-9]', ))
-        assert 'test_func1' not in map
-        assert 'test_func2' not in map
-        assert 'test_funcA' in map
-        assert 'test_funcB' in map
-        assert 'test_other' in map
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns, re_exclude=('test_func[0-9]', ))
+        assert 'test_func1' not in ns
+        assert 'test_func2' not in ns
+        assert 'test_funcA' in ns
+        assert 'test_funcB' in ns
+        assert 'test_other' in ns
 
     def test_re_only_letters(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map, re_only=('test_func[A-Z]', ))
-        assert 'test_func1' not in map
-        assert 'test_func2' not in map
-        assert 'test_funcA' in map
-        assert 'test_funcB' in map
-        assert 'test_other' not in map
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns, re_only=('test_func[A-Z]', ))
+        assert 'test_func1' not in ns
+        assert 'test_func2' not in ns
+        assert 'test_funcA' in ns
+        assert 'test_funcB' in ns
+        assert 'test_other' not in ns
 
     def test_combination_only_and_exclude(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map,
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns,
                                         only=('test_func1', ),
                                         exclude=('test_func1', ))
-        assert 'test_func1' not in map
-        assert 'test_func2' not in map
-        assert 'test_funcA' not in map
-        assert 'test_funcB' not in map
+        assert 'test_func1' not in ns
+        assert 'test_func2' not in ns
+        assert 'test_funcA' not in ns
+        assert 'test_funcB' not in ns
 
     def test_combination_re_only_and_re_exclude(self):
-        map = self.map.copy()
-        evn.meta.filter_namespace_funcs(map,
+        ns = self.ns.copy()
+        ns = evn.meta.filter_namespace_funcs(ns,
                                         re_only=('test_func[0-9]', ),
                                         re_exclude=('test_func1', ))
-        assert 'test_func1' not in map
-        assert 'test_func2' in map
-        assert 'test_funcA' not in map
-        assert 'test_funcB' not in map
+        assert 'test_func1' not in ns
+        assert 'test_func2' in ns
+        assert 'test_funcA' not in ns
+        assert 'test_funcB' not in ns
 
 
 if __name__ == '__main__':

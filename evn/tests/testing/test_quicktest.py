@@ -8,8 +8,8 @@ def main():
     # test_TestConfig_defaults()
     # test_TestConfig_detect_fixtures()
     # test_TestResult_runtime_and_items()
-    # test__test_func_ok()
-    # test__test_class_ok()
+    # test_func_ok_for_testing()
+    # test_class_ok_for_testing()
     # test_collect_and_run_tests()
     # test_main_and_print_result()
     # test_dryrun_mode()
@@ -24,7 +24,7 @@ def main():
 def test_TestConfig_defaults():
     cfg = et.TestConfig()
     assert cfg.nofail is False
-    assert cfg.verbose is False
+    assert cfg.debug is False
     assert cfg.checkxfail is False
     assert cfg.timed is True
     assert isinstance(cfg.fixtures, dict)
@@ -61,19 +61,19 @@ def test_TestResult_runtime_and_items():
     items = dict(r.items())
     assert 'passed' in items and 'failed' in items
 
-def test__test_func_ok():
+def test_func_ok_for_testing():
 
     def test_abc():
         pass
 
-    assert et.test_func_ok('test_abc', test_abc)
+    assert et.func_ok_for_testing('test_abc', test_abc)
 
-def test__test_class_ok():
+def test_class_ok_for_testing():
 
     class TestThing:
         pass
 
-    assert et.test_class_ok('TestThing', TestThing)
+    assert et.class_ok_for_testing('TestThing', TestThing)
 
 def test_collect_and_run_tests():
     state = {}
@@ -98,7 +98,7 @@ def test_main_and_print_result():
             ran['yes'] = True
 
         ns = {'test_foo': test_foo, '__file__': 'dummy.py'}
-        res = et.quicktest(ns, verbose=True, check_xfail=True)
+        res = et.quicktest(ns, debug=True, check_xfail=True)
         captured = capsys.readouterr()
         print(captured.out)
         assert 'PASSED' in captured.out

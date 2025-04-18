@@ -15,7 +15,7 @@ class TestConfig(evn.Bunch):
     def __init__(self, *a, **kw):
         super().__init__(self, *a, **kw)
         self.nofail = self.get('nofail', False)
-        self.verbose = self.get('verbose', False)
+        self.debug = self.get('debug', False)
         self.checkxfail = self.get('checkxfail', False)
         self.timed = self.get('timed', True)
         self.nocapture = self.get('nocapture', [])
@@ -32,7 +32,7 @@ class TestConfig(evn.Bunch):
         for name, obj in namespace.items():
             if callable(obj) and hasattr(obj, '_pytestfixturefunction'):
                 assert name not in self.fixtures
-                self.fixtures[name] = obj.__wrapped__()
+                self.fixtures[name] = obj.__wrapped__()  #type:ignore
 
 @evn.struct
 class TestResult:
@@ -55,8 +55,22 @@ class TestResult:
             ('skipexcn', self.skipexcn),
         ]
 
+@evn.chrono
 def quicktest(namespace, config=evn.Bunch(), **kw):
     t_start = time.perf_counter()
+    namespace, config = configure(namespace, config, **kw)
+    namespace = evn.kwcall(config, evn.meta.filter_namespace_funcs, namespace)
+    test_funcs, teardown = collect_tests(namespace, config)
+    try:
+        result = run_tests(test_funcs, config, kw)
+    finally:
+        for func in teardown:
+            func()
+    print_result(config, result, time.perf_counter() - t_start)
+    return result
+
+
+def configure(namespace, config, **kw):
     orig = namespace
     if not evn.ismap(namespace):
         namespace = vars(namespace)
@@ -67,18 +81,7 @@ def quicktest(namespace, config=evn.Bunch(), **kw):
     # evn.onexit(evn.global_timer.report, timecut=0.01, spacer=1)
     config = TestConfig(**config, **kw)
     config.detect_fixtures(namespace)
-    evn.kwcall(config, evn.meta.filter_namespace_funcs, namespace)
-    # timed = evn.chrono if config.timed else lambda f: f
-    # timed = lambda f:
-    test_funcs, teardown = collect_tests(namespace, config)
-    # evn.global_timer.checkpoint('quicktest')
-    try:
-        result = run_tests(test_funcs, config, kw)
-    finally:
-        for func in teardown:
-            func()
-    print_result(config, result, time.perf_counter() - t_start)
-    return result
+    return namespace, config
 
 def print_result(config, result, t_total):
     if result.passed:
@@ -87,35 +90,36 @@ def print_result(config, result, t_total):
     npassprinted = 0
     for label, tests in result.items():
         for test in tests:
-            if label == 'passed' and not config.verbose and npassprinted > 9 and result._runtime[test] < 100:
+            if label == 'passed' and not config.debug and npassprinted > 9 and result._runtime[test] < 100:
                 npassprinted += 1
                 continue
             print(f'{label.upper():9} {result._runtime[test]*1000:7.3f} ms {test}', flush=True)
 
-def test_func_ok(name, obj):
+def func_ok_for_testing(name, obj):
     return name.startswith('test_') and callable(obj) and evn.testing.no_pytest_skip(obj)
 
-def test_class_ok(name, obj):
+def class_ok_for_testing(name, obj):
     return name.startswith('Test') and isinstance(obj, type) and not hasattr(obj, '__unittest_skip__')
 
+@evn.chrono
 def collect_tests(namespace, config):
     test_funcs, test_classes, teardown = [], [], []
     for name, obj in namespace.items():
-        if test_class_ok(name, obj) and config.use_test_classes:
+        if class_ok_for_testing(name, obj) and config.use_test_classes:
             suite = obj()
             test_classes.append(suite)
             # print(f'{f" obj: {name} ":=^80}', flush=True)
             test_methods = evn.meta.filter_namespace_funcs(vars(namespace[name]))
             test_methods = {
                 f'{name}.{k}': getattr(suite, k)
-                for k, v in test_methods.items() if test_func_ok(k, v)
+                for k, v in test_methods.items() if func_ok_for_testing(k, v)
             }
             # TODO: maybe call these lazilyt?
             getattr(suite, 'setUp', lambda: None)()
             # test_suites.append((name, obj))
             test_funcs.extend(test_methods.items())
             teardown.append(getattr(suite, 'tearDown', lambda: None))
-        elif test_func_ok(name, obj):
+        elif func_ok_for_testing(name, obj):
             test_funcs.append((name, obj))
     testmodule = evn.Path(inspect.getfile(test_funcs[0][1])).stem
     for _, func in test_funcs:
@@ -125,6 +129,7 @@ def collect_tests(namespace, config):
         obj.__module__ = obj.__module__.replace('__main__', testmodule)
     return test_funcs, teardown
 
+@evn.chrono
 def run_tests(test_funcs, config, kw):
     result = TestResult()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -136,6 +141,7 @@ def run_tests(test_funcs, config, kw):
             quicktest_run_maybe_parametrized_func(name, func, result, config, kw)
     return result
 
+@evn.chrono
 def quicktest_run_maybe_parametrized_func(name, func, result, config, kw):
     names, values = evn.testing.get_pytest_params(func) or ((), [()])
     for val in values:
@@ -144,6 +150,7 @@ def quicktest_run_maybe_parametrized_func(name, func, result, config, kw):
         paramkw = kw | dict(zip(names, val))
         quicktest_run_test_function(name, func, result, config, paramkw)
 
+@evn.chrono
 def quicktest_run_test_function(name, func, result, config, kw, check_xfail=True):
     error, testout = None, None
     nocapture = config.nocapture is True or name in config.nocapture
@@ -180,12 +187,6 @@ def quicktest_run_test_function(name, func, result, config, kw, check_xfail=True
 
 class CapSys:
 
-    def __init__(self):
-        self._stdout = None
-        self._stderr = None
-        self._old_stdout = None
-        self._old_stderr = None
-
     def __enter__(self):
         self._stdout = io.StringIO()
         self._stderr = io.StringIO()
@@ -196,30 +197,16 @@ class CapSys:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._finalize()
+        sys.stdout = self._old_stdout
+        sys.stderr = self._old_stderr
 
     def readouterr(self):
         self._stdout.seek(0)
         self._stderr.seek(0)
         return CapResult(self._stdout.read(), self._stderr.read())
 
-    def _finalize(self):
-        sys.stdout = self._old_stdout
-        sys.stderr = self._old_stderr
-
 class CapResult:
 
     def __init__(self, out, err):
         self.out = out
         self.err = err
-
-def maincrudtest(crud, namespace, fixtures=None, funcsetup=lambda: None, **kw):
-    fixtures = fixtures or {}
-    with crud() as crud:
-        fixtures |= crud
-
-        def newfuncsetup(backend):
-            backend._clear_all_data_for_testing_only()
-            evn.kwcall(fixtures, funcsetup)
-
-        return quicktest(namespace, fixtures, funcsetup=newfuncsetup, **kw)
