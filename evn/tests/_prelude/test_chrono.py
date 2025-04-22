@@ -121,7 +121,7 @@ FuncNest.recursive.__module__ = 'test_chrono'
 
 # FuncNese.generator.__module__ = 'test_chrono'
 
-# @pyt8est.mark.xfail
+@pytest.mark.noci
 def test_chrono_nesting():
     chronometer.clear()
     instance = FuncNest()
@@ -182,6 +182,7 @@ def allclose(a, b, atol):
     if isinstance(a, float): return abs(a - b) < atol
     return all(abs(a - b) <= atol for x, y in zip(a, b))
 
+@pytest.mark.noci
 def test_chrono_checkpoint():
     with Chrono() as chrono:
         time.sleep(0.002)
@@ -255,6 +256,7 @@ def test_chrono_deco_func_nest():
     assert 'test_chrono.chrono_deco_func' in chronometer.times
     assert 'test_chrono.chrono_deco_func2' in chronometer.times
 
+@pytest.mark.noci
 def test_summary():
     with Chrono() as chrono:
         chrono.enter_scope('foo')
@@ -357,12 +359,14 @@ def test_report_dict_bad_order():
     with pytest.raises(ValueError):
         chrono.report_dict(order='invalid')
 
+@pytest.mark.noci
 def test_chrono_context_manager():
     with Chrono('foo') as c:
         time.sleep(0.01)
     assert 'foo' in c.times
     assert 0.01 <= c.times['foo'][0] < 0.012
 
+@pytest.mark.noci
 def test_scope_context_manager():
     c = Chrono()
     with c.scope('foo'):
@@ -370,6 +374,7 @@ def test_scope_context_manager():
     assert 'foo' in c.times
     assert 0.01 <= c.times['foo'][0] < 0.012
 
+@pytest.mark.noci
 def test_nested_scope_context_manager():
     c = Chrono()
     target = make_nested_calls(c)

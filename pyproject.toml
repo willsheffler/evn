@@ -54,7 +54,6 @@ markers = [
     'noci: tests that should not run in ci',
 ]
 
-
 [tool.ruff]
 # include = ['evn']
 exclude = ["dodo.py", 'noxfile.py']
