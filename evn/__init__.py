@@ -50,6 +50,8 @@ builtins.ic = ic  # make ic available globally # type:ignore
 from evn._prelude.chrono import (Chrono as Chrono, chrono as chrono, chrono_enter_scope as chrono_enter_scope,
                                  chrono_exit_scope as chrono_exit_scope, chrono_checkpoint as
                                  chrono_checkpoint)
+
+chrono_enter_scope('evn.__init__')
 from evn._prelude.basic_types import (
     NA as NA,
     NoOp as NoOp,
@@ -104,8 +106,6 @@ from evn._prelude.typehints import (
     Basic as Basic,
 )
 
-
-chrono_enter_scope('EVN INIT')
 from evn.decofunc import (
     iterize_on_first_param as iterize_on_first_param,
     iterize_on_first_param_path as iterize_on_first_param_path,
@@ -146,10 +146,11 @@ from evn.decon.bunch import Bunch as Bunch, bunchify as bunchify, unbunchify as 
 # from evn.iterables import first as first
 # from evn.contexts import force_stdio as force_stdio
 from evn.meta import kwcall as kwcall, kwcheck as kwcheck
-from evn.console import make_table as make_table
+from evn.console import make_table as make_table, suppress_warnings as suppress_warnings
 
 # from evn.cli import CLI as CLI
 
+loadeded = Bunch(_default=lambda m: sys.modules.get(m, None), _frozen=True)
 installed = Bunch(_default=is_installed, _frozen=True)
 
 from evn.dev.contexts import (
@@ -176,6 +177,7 @@ from evn._prelude.inspect import (
 )
 
 import evn.ident as ident
+import evn.environment as environment
 
 if TYPE_CHECKING:
     from evn import (
@@ -230,6 +232,7 @@ else:
 #     import evn.homog.hgeom as hnumpy
 #     from evn import pdb
 #     from evn import protocol
+chrono_exit_scope('evn.__init__')
 #     from evn import sel
 #     from evn import sym
 #     from evn import ml
@@ -283,7 +286,3 @@ else:
 # dev.global_chrono.checkpoints.update(_timings)
 
 # caching_enabled = True
-
-# import atexit
-# atexit.register(lambda: chronometer.report(order='active', mintime=0.04, header=' '))
-chrono_exit_scope('EVN INIT')

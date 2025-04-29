@@ -386,10 +386,10 @@ chrono_report_expected = """
 ╭─ Profile of test_chrono (order=total, summary=sum) ─╮
 │  total │ active │ scope                             │
 │ ╶──────┼────────┼──────────────────────────────╴    │
+│    TTT │    AAA │ test_chrono                       │
 │    TTT │    AAA │ test_chrono.chrono_deco_func3     │
 │    TTT │    AAA │ test_chrono.chrono_deco_func2     │
 │    TTT │    AAA │ test_chrono.chrono_deco_func      │
-│    TTT │    AAA │ test_chrono                       │
 ╰─────────────────────────────────────────────────────╯
 """
 

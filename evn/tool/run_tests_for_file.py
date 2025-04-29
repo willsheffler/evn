@@ -215,13 +215,17 @@ def main(projects, quiet=False, filter_output=False, inputfile=None, **kw):
             print('call:', sys.argv)
             print('cwd:', os.getcwd())
             print('cmd:', cmd)
-        print(f'{" run_tests_for_file.py running cmd in cwd ":=^69}')
+        print(f'{" run_tests_for_file.py running cmd in cwd ":=^80}')
 
         output = run_commands([cmd, post], sys.stdout)
+
+        if filter_output:
+            import evn
+            output = evn.code.process_python_output(output, preset=list(reversed(projects)))
         print(output, end='')
 
         t_total = perf_counter() - t_start
-        print(f'{f" run_tests_for_file.py done, time {t_total:7.3f} ":=^69}', flush=True)
+        print(f'{f" run_tests_for_file.py done, time {t_total:7.3f} ":=^80}', flush=True)
     finally:
         if isinstance(sys.stdout, StringIO):
             sys.stdout.seek(0)

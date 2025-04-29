@@ -23,15 +23,18 @@ def make_table(thing, precision=3, expand=False, **kw):
     kw['expand'] = expand
     with evn.np_printopts(precision=precision, suppress=True):
         # if evn.homog.is_tensor(thing): return make_table_list(thing, **kw)
-        if isinstance(thing, evn.Bunch):
-            return make_table_bunch(thing, **kw)
-        if isinstance(thing, dict):
-            return make_table_dict(thing, **kw)
-        # if isinstance(thing, (list, tuple)): return make_table_list(thing, **kw)
         xr = evn.maybeimport('xarray')
-        if xr and isinstance(thing, xr.Dataset):
-            return make_table_dataset(thing, **kw)
-        raise TypeError(f'cant make table for {type(thing)}')
+        if isinstance(thing, evn.Bunch):
+            table = make_table_bunch(thing, **kw)
+        elif isinstance(thing, dict):
+            table = make_table_dict(thing, **kw)
+        elif isinstance(thing, (list, tuple)):
+            table = make_table_list(thing, **kw)
+        elif xr and isinstance(thing, xr.Dataset):
+            table = make_table_dataset(thing, **kw)
+        else:
+            raise TypeError(f'cant make table for {type(thing)}')
+    return table
 
 def print_table(table, printme=True, **kw):
     if not isinstance(table, Table):
@@ -45,15 +48,11 @@ def print_table(table, printme=True, **kw):
     if printme: print(text)
     return text
 
-def postprocess_table(text, remove_blank_lines=True, **kw):
-    new = []
-    for line in text.splitlines():
-        # with evn.force_stdio():
-          # print(set(line))
-        if set(line) <= set(' ╵│╷'): continue
-        new.append(line)
-    return os.linesep.join(new)
-
+def postprocess_table(text, remove_blank_lines=True, strip_ansi=True, **kw):
+    new = [line for line in text.splitlines() if len(set(line) - set(' ╵│╷'))]
+    new = os.linesep.join(new)
+    new = evn.console.strip_ansi(new)
+    return new
 
 def make_table_list(lst, title=None, header=[], **kw):
     t = evn.kwcall(kw, Table, title=title, show_header=bool(header))
@@ -85,12 +84,12 @@ def _keys(mapping, exclude=(), **kw):
 def _items(mapping, exclude=(), **kw):
     return [(k, v) for k, v in mapping.items() if k[0] != '_' and k[-1] != '_' and k not in exclude]
 
-def make_table_dict_of_dict(mapping, title=None, key='key', keylast=False, border=False, **kw):
+def make_table_dict_of_dict(mapping, title=None, key='key', keylast=False, border=False, width=None, **kw):
     assert all(isinstance(m, Mapping) for m in mapping.values())
     vals = list(mapping.values())
     assert all(_keys(v, **kw) == _keys(vals[0], **kw) for v in vals)
-    tablekw = dict(title=title, box=box.ROUNDED)
-    if border: tablekw = dict(title=None, box=box.MINIMAL, pad_edge=False)
+    tablekw = dict(title=title, box=box.ROUNDED, width=width)
+    if border: tablekw = dict(title=None, box=box.MINIMAL, pad_edge=False, width=width)
     t = evn.kwcall(kw, Table, **tablekw)
     if key and not keylast: evn.kwcall(kw, t.add_column, to_renderable(key, **kw), justify='right')
     for k in _keys(vals[0], **kw):

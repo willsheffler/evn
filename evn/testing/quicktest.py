@@ -78,7 +78,6 @@ def configure(namespace, config, **kw):
         print(f'quicktest "{namespace["__file__"]}":', flush=True)
     else:
         print(f'quicktest "{orig}":', flush=True)
-    # evn.onexit(evn.global_timer.report, timecut=0.01, spacer=1)
     config = TestConfig(**config, **kw)
     config.detect_fixtures(namespace)
     return namespace, config
@@ -154,8 +153,9 @@ def quicktest_run_maybe_parametrized_func(name, func, result, config, kw):
 def quicktest_run_test_function(name, func, result, config, kw, check_xfail=True):
     error, testout = None, None
     nocapture = config.nocapture is True or name in config.nocapture
-    context = evn.nocontext if nocapture else evn.capture_stdio
-    with context() as testout:  # noqa
+    capture_ctx = evn.nocontext if nocapture else evn.capture_stdio
+    chrono_ctx = evn.chronometer.scope if config.timed else evn.nocontext
+    with capture_ctx() as testout, chrono_ctx(name) as timer:  # noqa
         try:
             evn.kwcall(config.fixtures, config.funcsetup)
             if not config.dryrun:

@@ -21,7 +21,12 @@ def main():
             out.write(newtext)
         print(f'file: {fname}, lines {len(text.splitlines())} -> {len(newtext.splitlines())}')
 
-presets = dict(
+re_blank = re.compile(r'(?:^[ \t]*\n){2,}', re.MULTILINE)
+re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
+re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
+re_null = r'a^'  # never matches
+
+filter_presets = dict(
     unittest=dict(
         refile=
         (r'quicktest\.py|icecream/icecream.py|/pprint.py|lazy_import.py|<.*>|numexpr/__init__.py|hydra/_internal/defaults_list.py|click/core.py|/typer/main.py|/assertion/rewrite.py'
@@ -49,26 +54,24 @@ presets = dict(
          ),
         minlines=1,
     ),
+    full_output=dict(refile=re_null, refunc=re_null, minlines=9e9),
 )
-
-re_blank = re.compile(r'(?:^[ \t]*\n){2,}', re.MULTILINE)
-re_block = re.compile(r'  File "([^"]+)", line (\d+), in (.*)')
-re_end = re.compile(r'(^[A-Za-z0-9.]+Error)(: .*)?')
-re_null = r'a^'  # never matches
 
 def process_python_output(
     text,
     entrypoint=None,
     re_file=re_null,
     re_func=re_null,
-    preset: str | None = 'boilerplate',
+    preset: list[str] = ['boilerplate'],
     minlines=-1,
     filter_numpy_version_nonsense=True,
     keep_blank_lines=False,
     arrows=True,
     **kw,
 ):
-    config = presets[preset] if preset else None
+    if isinstance(preset, str): preset = [preset]
+    picked_preset = next((p for p in preset if p in filter_presets), 'full_output')
+    config = filter_presets[picked_preset]
     # if entrypoint == 'codetool': return text
     if minlines < 0: minlines = config['minlines'] if preset else 1  #type:ignore
     if config and re_file == re_null: re_file = config['refile']
@@ -100,7 +103,7 @@ def process_python_output(
             if m := re_file_alt.match(line):
                 line = transform_fileref_to_python_format(line, m)
             result.append(line)
-    result.append(f'^^^^^^^^^^^^^^^^^^^^^ evn.tool.process_python_output {preset} ^^^^^^^^^^^^^^^^^^^^^\n')
+    result.append(f'{f" evn.code.process_python_output (preset={picked_preset}) ":^^80}\n')
     # if result[-1]: result.append('')
     new = os.linesep.join(result)
     return new

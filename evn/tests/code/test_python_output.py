@@ -159,11 +159,11 @@ def test_filter_minlines_met(sample_traceback_simple):
     result = ppo.process_python_output(sample_traceback_simple, minlines=min_lines)
     # Check if filtering occurred (e.g., footer added)
     print(result)
-    assert "process_python_output boilerplate" in result
+    assert "process_python_output (preset=boilerplate)" in result
     assert result != sample_traceback_simple
 
 def test_filter_preset_boilerplate(sample_traceback_filtered):
-    result = ppo.process_python_output(sample_traceback_filtered, preset='boilerplate', minlines=1)
+    result = ppo.process_python_output(sample_traceback_filtered, preset=['boilerplate'], minlines=1)
     expected = textwrap.dedent("""\
         Traceback (most recent call last):
           pytest_runtest_call -> runtest -> ic_wrapper ->
@@ -174,7 +174,7 @@ def test_filter_preset_boilerplate(sample_traceback_filtered):
           File "my_project/core_logic.py", line 50, in another_call
              raise ValueError("Specific problem")
         ValueError: Specific problem
-        ^^^^^^^^^^^^^^^^^^^^^ evn.tool.process_python_output boilerplate ^^^^^^^^^^^^^^^^^^^^^\
+        ^^^^^^^^^^^^^ evn.code.process_python_output (preset=boilerplate) ^^^^^^^^^^^^^^
     """) + os.linesep  # Function adds trailing newline
     assert result.strip() == expected.strip()
 
@@ -190,7 +190,7 @@ def test_filter_preset_aggressive(sample_traceback_filtered):
           File "my_project/core_logic.py", line 50, in another_call
              raise ValueError("Specific problem")
         ValueError: Specific problem
-        ^^^^^^^^^^^^^^^^^^^^^ evn.tool.process_python_output aggressive ^^^^^^^^^^^^^^^^^^^^^\
+        ^^^^^^^^^^^^^^ evn.code.process_python_output (preset=aggressive) ^^^^^^^^^^^^^^
     """) + os.linesep
     assert result.strip() == expected.strip()
 
@@ -200,7 +200,7 @@ def test_filter_custom_regex(sample_traceback_simple):
         sample_traceback_simple,
         re_file=r'calculator\.py',
         re_func=ppo.re_null,  # Don't filter funcs for this test
-        preset=None,  # Disable preset
+        preset=[],  # Disable preset
         minlines=1)
     expected = textwrap.dedent("""\
         Some introductory text.
@@ -212,8 +212,9 @@ def test_filter_custom_regex(sample_traceback_simple):
             return x / y
         ZeroDivisionError: division by zero
         Some concluding text.
-        ^^^^^^^^^^^^^^^^^^^^^ evn.tool.process_python_output None ^^^^^^^^^^^^^^^^^^^^^\
+        ^^^^^^^^^^^^^ evn.code.process_python_output (preset=full_output) ^^^^^^^^^^^^^^
     """) + os.linesep
+    print(result)
     assert result.strip() == expected.strip()
 
 @pytest.mark.xfail
@@ -229,7 +230,7 @@ def test_filter_keep_blank_lines(sample_traceback_simple):
 
 def test_filter_no_arrows(sample_traceback_filtered):
     result = ppo.process_python_output(sample_traceback_filtered,
-                                       preset='boilerplate',
+                                       preset=['boilerplate'],
                                        minlines=1,
                                        arrows=False)
     # Arrows (e.g., "runner -> ... ->") should not be present

@@ -4,6 +4,7 @@ from importlib import import_module
 from types import ModuleType
 import typing
 from .import_util import is_installed
+from evn._prelude.chrono import chrono_enter_scope, chrono_exit_scope
 
 forbid = set()
 
@@ -29,17 +30,21 @@ def lazyimports(
 
 def timed_import_module(modnames):
     if isinstance(modnames, str): modnames = (modnames, )
+    mod = None
     for modname in modnames:
         assert modname not in forbid, f'forbbiden import! {modname}'
         try:
+            chrono_enter_scope(f'{modname} (lazyimport)')
             mod = import_module(modname)
             break
         except ImportError:
             mod = None
-    if mod is None: import_module(modnames[0])
+        finally:
+            chrono_exit_scope(f'{modname} (lazyimport)')
+    if mod is None: import_module(modnames[0])  # to raise ImportError
     return mod
 
-def lazyimport(name: 'str | tuple[str]',
+def lazyimport(name: str | tuple[str, ...],
                package: str = '',
                pip: bool = False,
                mamba: bool = False,
@@ -93,9 +98,9 @@ class _LazyModule(ModuleType):
         except ImportError as e:
             if 'doctest' in sys.modules:
                 if in_doctest():
-                    return FalseModule(self._lazymodule_name if isinstance(self._lazymodule_name, str) else self._lazymodule_name[0])
+                    return FalseModule(self._lazymodule_name if isinstance(self._lazymodule_name, str
+                                                                           ) else self._lazymodule_name[0])
             raise e from None
-
 
     def _lazymodule_is_loaded(self):
         return self._lazymodule_name in sys.modules
@@ -126,7 +131,6 @@ class FalseModule(ModuleType):
     def __bool__(self):
         return False
 
-
 def in_doctest():
     return any('doctest' in frame.filename for frame in inspect.stack())
 
@@ -134,38 +138,38 @@ _all_skipped_lazy_imports = set()
 _skip_global_install = False
 _warned = set()
 
-    # def _try_mamba_install(self):
-    #     mamba = sys.executable.replace('/bin/python', '')
-    #     mamba, env = mamba.split('/')
-    #     # mamba = '/'.join(mamba[:-1])+'/bin/mamba'
-    #     mamba = 'mamba'
-    #     cmd = f'{mamba} activate {env} && {mamba} install {self._lazymodule_channels} {self._lazymodule_package}'
-    #     result = subprocess.check_call(cmd.split(), shell=True)
-    #     assert not isinstance(result, int) and 'error' not in result.lower()
+# def _try_mamba_install(self):
+#     mamba = sys.executable.replace('/bin/python', '')
+#     mamba, env = mamba.split('/')
+#     # mamba = '/'.join(mamba[:-1])+'/bin/mamba'
+#     mamba = 'mamba'
+#     cmd = f'{mamba} activate {env} && {mamba} install {self._lazymodule_channels} {self._lazymodule_package}'
+#     result = subprocess.check_call(cmd.split(), shell=True)
+#     assert not isinstance(result, int) and 'error' not in result.lower()
 
-    # def _pipimport(self):
-    #     global _skip_global_install
-    #     try:
-    #         return timed_import_module(self._lazymodule_name)
-    #     except (ValueError, AssertionError, ModuleNotFoundError):
-    #         if self._lazymodule_pip and self._lazymodule_pip != 'user':
-    #             if not _skip_global_install:
-    #                 try:
-    #                     sys.stderr.write(f'PIPIMPORT {self._lazymodule_package}\n')
-    #                     result = subprocess.check_call(
-    #                         f'{sys.executable} -mpip install {self._lazymodule_package}'.split())
-    #                 except:  # noqa
-    #                     pass
-    #         try:
-    #             return timed_import_module(self._lazymodule_name)
-    #         except (ValueError, AssertionError, ModuleNotFoundError):
-    #             if self._lazymodule_pip and self._lazymodule_pip != 'nouser':
-    #                 _skip_global_install = True
-    #                 sys.stderr.write(f'PIPIMPORT --user {self._lazymodule_package}\n')
-    #                 try:
-    #                     result = subprocess.check_call(
-    #                         f'{sys.executable} -mpip install --user {self._lazymodule_package}'.split())
-    #                     sys.stderr.write(str(result))
-    #                 except:  # noqa
-    #                     pass
-    #             return timed_import_module(self._lazymodule_name)
+# def _pipimport(self):
+#     global _skip_global_install
+#     try:
+#         return timed_import_module(self._lazymodule_name)
+#     except (ValueError, AssertionError, ModuleNotFoundError):
+#         if self._lazymodule_pip and self._lazymodule_pip != 'user':
+#             if not _skip_global_install:
+#                 try:
+#                     sys.stderr.write(f'PIPIMPORT {self._lazymodule_package}\n')
+#                     result = subprocess.check_call(
+#                         f'{sys.executable} -mpip install {self._lazymodule_package}'.split())
+#                 except:  # noqa
+#                     pass
+#         try:
+#             return timed_import_module(self._lazymodule_name)
+#         except (ValueError, AssertionError, ModuleNotFoundError):
+#             if self._lazymodule_pip and self._lazymodule_pip != 'nouser':
+#                 _skip_global_install = True
+#                 sys.stderr.write(f'PIPIMPORT --user {self._lazymodule_package}\n')
+#                 try:
+#                     result = subprocess.check_call(
+#                         f'{sys.executable} -mpip install --user {self._lazymodule_package}'.split())
+#                     sys.stderr.write(str(result))
+#                 except:  # noqa
+#                     pass
+#             return timed_import_module(self._lazymodule_name)

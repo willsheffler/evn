@@ -1,7 +1,12 @@
+import re
 import collections
 import subprocess
 
 BashResult = collections.namedtuple('BashResult', 'stdout, stderr, returncode')
+
+def strip_ansi(text):
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return ansi_escape.sub('', text)
 
 def bash(cmd: str) -> BashResult:
     """Run a bash command and return the stdout, stderr, and return code."""

@@ -13,7 +13,7 @@ import evn
 def main():
     evn.testing.quicktest(globals())
 
-@pytest.mark.xfail
+@pytest.mark.noci
 def test_qualname_of_file():
     with pytest.raises(ValueError):
         evn.code.qualname_of_file('foo')

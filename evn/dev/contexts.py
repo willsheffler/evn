@@ -103,7 +103,7 @@ def force_stdio():
             pass
 
 @contextlib.contextmanager
-def nocontext():
+def nocontext(*a, **kw):
     try:
         yield None
     finally:

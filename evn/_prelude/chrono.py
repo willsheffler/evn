@@ -1,8 +1,9 @@
 from contextlib import contextmanager
+from dataclasses import dataclass, field
+from time import perf_counter
+import signal
 import types
 import typing as t
-from time import perf_counter
-from dataclasses import dataclass, field
 
 import evn
 from evn._prelude.make_decorator import make_decorator
@@ -16,6 +17,8 @@ class Chrono:
     scopestack: list['ChronoScope'] = field(default_factory=list)
     times: dict[str, list] = field(default_factory=dict)
     times_tot: dict[str, list] = field(default_factory=dict)
+    report_name_replace: dict[str, str] = field(default_factory=dict)
+    run_on_exit: list = field(default_factory=list)
     entered: bool = False
     _pre_checkpoint_name: str | None = None
     stopped: bool = False
@@ -84,12 +87,12 @@ class Chrono:
             self.scopestack[-1].subscope_begins()
         self.scopestack.append(ChronoScope(name, chrono=self))
 
-    def exit_scope(self, scopekey: str | object):
+    def exit_scope(self, scopekey: str | object, strict: bool = True):
         self._pre_checkpoint_name = ''
         name = self.check_scopekey(scopekey, 'exit_scope')
         if not self.scopestack: raise RuntimeError('Chrono is not running')
         err = f'exiting scope: {name} doesnt match: {self.scopestack[-1].name}'
-        assert self.scopestack[-1].name == name, err
+        if strict: assert self.scopestack[-1].name == name, err
         self.end_scope(self.scopestack.pop())
         if self.scopestack: self.scopestack[-1].subscope_ends()
 
@@ -110,10 +113,10 @@ class Chrono:
         """Return the total elapsed time."""
         return perf_counter() - self.start_time
 
-    def find_times(self, name):
-        return next((v for k, v in self.times.items() if name in k), None)
+    def find_times(self, name) -> list:
+        return next((v for k, v in self.times.items() if name in k), [])
 
-    def report_dict(self, order='active', summary=sum, mintime=0):
+    def report_dict(self, order='active', summary=sum, mintime=0.0, do_replacements=True):
         """
         Generate a report dictionary of
          times.
@@ -129,24 +132,29 @@ class Chrono:
         keys = self.times_tot.keys()
         times = evn.dictmap(summary, self.times)
         times_tot = evn.dictmap(summary, self.times_tot)
-        if order == 'active':
-            sortkeys = sorted(keys, key=lambda k: times[k], reverse=True)
-        elif order == 'total':
-            sortkeys = sorted(keys, key=lambda k: times_tot[k], reverse=True)
-        elif order == 'callorder':
-            sortkeys = keys
-        elif order == 'alphabetical':
-            sortkeys = list(sorted(keys))
-        else:
-            raise ValueError(f'Unknown order: {order}')
         report = evn.Bunch({
             k: evn.Bunch(total=times_tot[k], active=times[k])
-            for k in sortkeys if times_tot[k] > mintime and times[k] > mintime
+            for k in keys if order == 'total' and times_tot[k] >= mintime or times[k] >= mintime
         })
         for still_active in reversed(self.scopestack):
             time, tottime = still_active.final(stop=False)
             report[still_active.name] = evn.Bunch(total=tottime, active=time)
-        # report[self.name] = evn.Bunch(total=perf_counter() - self.start_time, active=summary(times[self.scopestack[0].name]))
+        if order == 'active':
+            report = dict(sorted(report.items(), key=lambda k: k[1].active, reverse=True))
+        elif order == 'total':
+            report = dict(sorted(report.items(), key=lambda k: k[1].total, reverse=True))
+        elif order == 'callorder':
+            report = report
+        elif order == 'alphabetical':
+            report = dict(sorted(report.items()))
+        else:
+            raise ValueError(f'Unknown order: {order}')
+        if do_replacements and self.report_name_replace:
+            for kold in list(report.keys()):
+                k = kold
+                for old, new in self.report_name_replace.items():
+                    k = k.replace(old, new)
+                report[k] = report.pop(kold)
         return report
 
     def report(self,
@@ -156,7 +164,8 @@ class Chrono:
                printme=True,
                mintime=0,
                header='',
-               footer='') -> str:
+               footer='',
+               width=None) -> str:
         """
         Print or return a report of
          profile.
@@ -182,7 +191,10 @@ class Chrono:
                 justify='left',
                 keylast=True,
                 key='scope',
-                border=True)
+                border=True,
+                width=width,
+                # overflow='fold',
+            )
             if footer: print(footer)
         report = capture.read()
         # report_lines = [f'Chrono Report ({self.name})']
@@ -191,6 +203,25 @@ class Chrono:
         if printme:
             print(report)
         return report
+
+    def report_on_exit(self, header=' ', mintime=0.1, order='active', multiple=False, replace=False):
+        if self.run_on_exit and not multiple and replace:
+            print('⚠️  Chrono.report_on_exit: replacing previous report function')
+            self.run_on_exit.pop()
+        elif self.run_on_exit and not multiple: return
+        self.run_on_exit.append(lambda: self.report(order=order, mintime=mintime, header=header))
+        import atexit
+        atexit.register(self.run_on_exit[-1])
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, self._handle_signal)
+
+    def _handle_signal(self, signum, frame):
+        print(f"⚠️  Caught signal {signum}, cleaning up…")
+        for func in self.run_on_exit:
+            func()
+        # Re-raise default handler so program terminates with the correct exit code
+        signal.signal(signum, signal.SIG_DFL)
+        assert 0, f"Program terminated by signal {signum}"
 
 @dataclass
 class ChronoScope:
@@ -211,8 +242,10 @@ class ChronoScope:
 
     def final(self, stop=True):
         if self.debug: print(f'{self.pad} scope_end {self.short}, {perf_counter()-self.start_time:7.3f}')
-        assert self.sub_start < 9e8
-        self.stopped, subtotal = stop, perf_counter() - self.sub_start + self.subtotal
+        if self.sub_start < 9e8:
+            self.stopped, subtotal = stop, perf_counter() - self.sub_start + self.subtotal
+        else:  # subscope still active... must be intermediate report
+            subtotal = self.subtotal
         return subtotal, perf_counter() - self.start_time
 
     def subscope_begins(self):
@@ -249,16 +282,17 @@ def chrono_checkpoint(name, **kw):
     chrono.checkpoint(name, **kw)
 
 @make_decorator(chrono=evn.chronometer)
-def chrono(wrapped, *args, chrono: Chrono | None = None, **kw):
+def chrono(wrapped=None, *args, chrono: Chrono | None = None, **kw) -> t.Callable:
+    assert wrapped
     chrono2: Chrono = kw.get('chrono', chrono)
     chrono2.enter_scope(wrapped)
     result = wrapped(*args, **kw)
     chrono2.exit_scope(wrapped)
     if not isinstance(result, types.GeneratorType):
         return result
-    return _generator_proxy(wrapped, result, chrono2)
+    return _generator_proxy(wrapped, result, chrono2)  # type:ignore
 
-def _generator_proxy(gener, wrapped, chrono):
+def _generator_proxy(gener, wrapped, chrono) -> t.Generator:
     try:
         geniter = iter(gener)
         while True:

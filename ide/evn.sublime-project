@@ -32,7 +32,7 @@
         {
             "name": "run_tests_for_file",
             "working_dir": "$folder",
-            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_for_file.py --quiet evn --filter-output  $file 2>&1 | tee $folder/ide/sublime_build.log",
+            "shell_cmd": "PYTHONPATH=. \\$PYTHON evn/tool/run_tests_for_file.py --quiet evn $file 2>&1 | tee $folder/ide/sublime_build.log",
             "file_regex": "^\\s*File \"(...*?)\", line ([0-9]*)"
         },
         {
