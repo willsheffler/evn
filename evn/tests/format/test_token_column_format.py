@@ -1,6 +1,10 @@
 import difflib
 import pytest
 import evn
+try:
+    from evn.format import PythonLineTokenizer
+except (ImportError, NameError):
+    pytest.skip(allow_module_level=True)
 
 # --- Tokenization Tests ---
 

@@ -2,11 +2,12 @@
     "folders":
     [
         {
-            "path": "/home/sheffler/evn",
+            "path": "..",
             "folder_exclude_patterns":
             [
                 "site-packages",
-                ".test*"
+                ".test*",
+                ".venv"
             ]
         }
     ],
@@ -19,10 +20,10 @@
         },
         "project_environment": {
             "env": {
-                "PYTHON": "/home/sheffler/sw/MambaForge/envs/evn/bin/python",
-                "PYTEST": "/home/sheffler/sw/MambaForge/envs/evn/bin/pytest",
-                "PIP": "/home/sheffler/sw/MambaForge/envs/evn/bin/pip",
-                // "PYTHON": "/home/sheffler/sw/MambaForge/envs/wu/bin/python",
+                "PYTHON": "/home/sheffler/miniconda3/envs/evn/bin/python",
+                "PYTEST": "/home/sheffler/miniconda3/envs/evn/bin/pytest",
+                "PIP": "/home/sheffler/miniconda3/envs/evn/bin/pip",
+                // "PYTHON": "/home/sheffler/miniconda3/envs/wu/bin/python",
                 "QT_QPA_PLATFORM": "xcb"
             }
         }

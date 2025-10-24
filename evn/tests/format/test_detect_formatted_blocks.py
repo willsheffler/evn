@@ -1,5 +1,9 @@
 import pytest
 import evn
+try:
+    import evn.format
+except (ImportError, NameError):
+    pytest.skip(allow_module_level=True)
 
 
 def main():

@@ -1,4 +1,5 @@
 import re
+import pytest
 import evn
 
 config_test = evn.Bunch(
@@ -12,7 +13,11 @@ config_test = evn.Bunch(
 
 
 def helper_test_code_examples(testname, original, reference):
-    formatted = evn.format.format_buffer(original)
+    try:
+       from evn.format import format_buffer
+    except (ImportError, NameError):
+        pytest.skip()
+    formatted = format_buffer(original)
     if formatted != reference:
         print(testname)
         evn.diff(formatted, reference)

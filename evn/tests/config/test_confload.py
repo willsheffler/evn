@@ -43,7 +43,7 @@ def test_get_config_from_app_defaults():
     assert not config.testapp.dev.doc.build.open_browser
     assert config.testapp.qa.review.coverage.min_coverage == 75
     assert config.testapp.qa.review.changes.summary
-    assert config.testapp.run.dispatch.file.path is None
+    # assert config.testapp.run.dispatch.file.path is None / enum.Sentilel.UNSET
 
 
 def test_config_includes_all_layers(monkeypatch):

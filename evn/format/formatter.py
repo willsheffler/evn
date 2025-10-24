@@ -3,8 +3,11 @@ import subprocess
 from abc import ABC, abstractmethod
 from typing import Optional
 from dataclasses import dataclass, field
-from evn.format import IdentifyFormattedBlocks, PythonLineTokenizer
 import evn
+try:
+    from evn.format import IdentifyFormattedBlocks, PythonLineTokenizer
+except ImportError:
+    print('failed to import compiled format components')
 
 
 @dataclass

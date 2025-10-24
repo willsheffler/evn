@@ -155,6 +155,7 @@ def quicktest_run_test_function(name, func, result, config, kw, check_xfail=True
     nocapture = config.nocapture is True or name in config.nocapture
     capture_ctx = evn.nocontext if nocapture else evn.capture_stdio
     chrono_ctx = evn.chronometer.scope if config.timed else evn.nocontext
+    result._runtime[name] = 0
     with capture_ctx() as testout, chrono_ctx(name) as timer:  # noqa
         try:
             evn.kwcall(config.fixtures, config.funcsetup)

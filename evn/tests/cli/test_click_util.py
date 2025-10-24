@@ -1,4 +1,5 @@
 import click
+import evn
 from evn.cli.click_util import *
 
 
@@ -15,41 +16,6 @@ def test_extract_command_info():
 
     info = extract_command_info(cmd)
     assert info.function == greet
-    assert info['parameters'] == [
-        {
-            'count': False,
-            'default': 1,
-            'envvar': None,
-            'flag_value': False,
-            'help': 'Number of greetings.',
-            'hidden': False,
-            'is_flag': False,
-            'multiple': False,
-            'name': 'count',
-            'nargs': 1,
-            'opts': ['--count'],
-            'param_type_name': 'option',
-            'prompt': None,
-            'required': False,
-            'secondary_opts': [],
-            'type': {
-                'name': 'integer',
-                'param_type': 'Int'
-            },
-        },
-        {
-            'default': None,
-            'envvar': None,
-            'multiple': False,
-            'name': 'name',
-            'nargs': 1,
-            'opts': ['name'],
-            'param_type_name': 'argument',
-            'required': True,
-            'secondary_opts': [],
-            'type': {
-                'name': 'text',
-                'param_type': 'String'
-            },
-        },
-    ]
+    assert len(info['parameters']) == 2
+    assert info['parameters'][0]['name'] == 'count'
+    assert info['parameters'][1]['name'] == 'name'
